@@ -10,23 +10,41 @@ namespace Fitzpiler
     {
         private string[] program;
         private Queue<Token> queue = new Queue<Token>();
+        private Stack<Token> doubleQueue = new Stack<Token>(); //Second stack may not be necessary
+        private Token current;
+        public Tokenizer tokenizer { get; private set; }
         public Scanner(string [] program)
         {
             this.program = program;
             try
             {
-                Tokenizer tokenizer = new Tokenizer(this.program);
+                tokenizer = new Tokenizer(this.program);
                 Token t;
                 while ((t = tokenizer.Next()) != null)
                 {
                     queue.Enqueue(t);
-                    Console.WriteLine(t);
+                 //   Console.WriteLine(t);
                 }
             }
             catch(ParseFailedException e)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine("Tokenization failed:" + tokenizer.line + "\n\t" +  e.Message);
             }
+        }
+        public Token Pop()
+        {
+            current = queue.Dequeue();
+            doubleQueue.Push(current);
+            return current;
+        }
+        public Token Peek()
+        {
+            return queue.Peek();
+        }
+        public void Rewind() //Remove if unused, may not work anyways
+        {
+            current = doubleQueue.Pop();
+            queue.Enqueue(current);
         }
     }
 }

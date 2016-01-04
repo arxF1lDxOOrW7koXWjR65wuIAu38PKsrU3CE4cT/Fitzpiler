@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Fitzpiler
 {
-    class Program
+    class MainProgram
     {
         static void Main(string[] args)
         {
@@ -16,6 +16,7 @@ namespace Fitzpiler
             {
                 string[] program = File.ReadAllLines(filepath);
                 Scanner scanner = new Scanner(program);
+                Parser parser = new Parser(scanner);
             }
             catch(IOException e)
             {

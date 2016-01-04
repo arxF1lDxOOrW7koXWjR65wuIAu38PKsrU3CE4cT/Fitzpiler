@@ -12,6 +12,7 @@ namespace Fitzpiler
         private int ptr = 0;
         private char[] charbuf = new char[32];//max size of 32 for any one token -- probably not used
         private int bufcount = 0;
+        public int line { get; private set; } = 0;
         public Tokenizer(string[] program)
         {
             StringBuilder sb = new StringBuilder();
@@ -26,7 +27,11 @@ namespace Fitzpiler
             {
                 if (ptr + 1 > program.Length) return null;
                 char c = program[ptr++];
-                while (c == ' ' || c == '\n') c = program[ptr++];
+                while (c == ' ' || c == '\n')
+                {
+                    if (c == '\n') line++;
+                    c = program[ptr++];
+                }
                 Token t = null;
                 if (c > 64 && c < 123) // Letter
                 {
@@ -38,7 +43,7 @@ namespace Fitzpiler
                     string s = BufToString(charbuf);
                     Array.Clear(charbuf, 0, 32);
                     bufcount = 0;
-                    t = new Token(TOKENTYPE.NUM, s);
+                    t = new Token(TOKENTYPE.ID, s);
                 }
                 else if (c >= 48 && c <= 57) // Number
                 {
@@ -99,14 +104,35 @@ namespace Fitzpiler
                     t = new Token(TOKENTYPE.MULOP, c.ToString());
                     ptr++;
                 }
-                else if (c == 58 && program[ptr + 1] == 61) // ASSIGNOP
+                else if (c == 58 && program[ptr] == 61) // ASSIGNOP
                 {
-                    t = new Token(TOKENTYPE.ASSIGNOP, program.Substring(ptr - 1, 2));
+                    t = new Token(TOKENTYPE.ASSIGNOP, ":=");
                     ptr++;
                 }
                 else if(c == 59)
                 {
-                    t = new Token(TOKENTYPE.STOP, ""); //THIS NEEDS MORE WORK
+                    t = new Token(TOKENTYPE.STOP, ";");
+                    ptr++;
+                }
+                else if (c == 58 && program[ptr + 1] != 61)
+                {
+                    t = new Token(TOKENTYPE.STOP, ":");
+                    ptr++;
+                }
+                else if (c == 46)
+                {
+                    t = new Token(TOKENTYPE.STOP, "."); 
+                    ptr++;
+                }
+                else if (c == 91)
+                {
+                    t = new Token(TOKENTYPE.STOP, "[");
+                    ptr++;
+                }
+                else if (c == 93)
+                {
+                    t = new Token(TOKENTYPE.STOP, "]");
+                    ptr++;
                 }
                 return t;
 
@@ -142,5 +168,30 @@ namespace Fitzpiler
             if (this.TYPE == TOKENTYPE.STOP) return "STOP:";
             return "ASSIGNOP: " + this.data;
         }
+        public bool Match(KEYWORD keyword)
+        {
+            var str = this.data;
+            if (keyword == KEYWORD.ARRAY && str == "ARRAY") return true;
+            if (keyword == KEYWORD.BEGIN && str == "BEGIN") return true;
+            if (keyword == KEYWORD.END && str == "END") return true;
+            if (keyword == KEYWORD.REAL && str == "REAL") return true;
+            if (keyword == KEYWORD.INTEGER && str == "INTEGER") return true;
+            if (keyword == KEYWORD.NOT && str == "NOT") return true;
+            if (keyword == KEYWORD.IF && str == "IF") return true;
+            if (keyword == KEYWORD.WHILE && str == "WHILE") return true;
+            if (keyword == KEYWORD.READ && str == "READ") return true;
+            if (keyword == KEYWORD.WRITE && str == "WRITE") return true;
+            if (keyword == KEYWORD.FUNCTION && str == "FUNCTION") return true;
+            if (keyword == KEYWORD.PROCEDURE && str == "PROCEDURE") return true;
+            if (keyword == KEYWORD.PROGRAM && str == "PROGRAM") return true;
+            if (keyword == KEYWORD.VAR && str == "VAR") return true;
+            return false;
+        }
+        public bool Match(TOKENTYPE tokentype)
+        {
+            if (tokentype == this.TYPE) return true;
+            return false;
+        }
+        
     }
 }

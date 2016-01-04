@@ -16,4 +16,24 @@ namespace Fitzpiler
         ASSIGNOP,
         STOP
     }
+    enum KEYWORD
+    {
+        PROGRAM,
+        VAR,
+        ARRAY,
+        INTEGER,
+        REAL,
+        FUNCTION,
+        PROCEDURE,
+        BEGIN,
+        END,
+        IF,
+        WHILE,
+        READ,
+        WRITE,
+        NOT,
+        THEN,
+        ELSE
+    }
+    
 }
