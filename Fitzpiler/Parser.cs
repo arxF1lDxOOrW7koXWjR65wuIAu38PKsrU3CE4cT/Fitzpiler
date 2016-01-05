@@ -19,98 +19,100 @@ namespace Fitzpiler
             {
 
                 current = scanner.Pop();
-                Consume(KEYWORD.PROGRAM);
+                Consume(KeyWord.PROGRAM);
                 this.program.id = current.data;
-                Consume(TOKENTYPE.ID);
+                Consume(TokenType.ID);
 
                 Declarations();
-                Compound_Statement();
-
+                this.program.statements = Compound_Statement();
+                Console.Write(program.ToString());
             }
-            catch(ParseFailedException e)
+            catch (ParseFailedException e)
             {
                 Console.WriteLine("Tokenization failed: line " + scanner.tokenizer.line + "\n\t" + e.Message);
             }
         }
         private void Declarations()
         {
-            if(current.Match(KEYWORD.VAR))
+            if (current.Match(KeyWord.VAR))
             {
-                Consume(KEYWORD.VAR);
+                Consume(KeyWord.VAR);
                 do
                 {
                     string varname = current.data;
-                    Consume(TOKENTYPE.ID);
-                    Consume(TOKENTYPE.STOP);
-                    if (current.Match(KEYWORD.INTEGER))
+                    Consume(TokenType.ID);
+                    Consume(TokenType.STOP);
+                    if (current.Match(KeyWord.INTEGER))
                     {
                         VarType vartype = VarType.INTEGER;
-                        Consume(KEYWORD.INTEGER);
-                        if (program.vartypes.ContainsKey(varname)) throw new ParseFailedException("Variable already defined"); 
-                        program.vartypes.Add(varname, vartype);
-                    }
-                    else if (current.Match(KEYWORD.REAL))
-                    {
-                        VarType vartype = VarType.REAL;
-                        Consume(KEYWORD.REAL);
+                        Consume(KeyWord.INTEGER);
                         if (program.vartypes.ContainsKey(varname)) throw new ParseFailedException("Variable already defined");
                         program.vartypes.Add(varname, vartype);
                     }
-                    else if (current.Match(KEYWORD.ARRAY)) //deal with this later
+                    else if (current.Match(KeyWord.REAL))
+                    {
+                        VarType vartype = VarType.REAL;
+                        Consume(KeyWord.REAL);
+                        if (program.vartypes.ContainsKey(varname)) throw new ParseFailedException("Variable already defined");
+                        program.vartypes.Add(varname, vartype);
+                    }
+                    else if (current.Match(KeyWord.ARRAY)) //deal with this later
                     {
 
                     }
-                } while (current.Match(TOKENTYPE.ID) && scanner.Peek().data == ":");
-                    
+                } while (current.Match(TokenType.ID) && scanner.Peek().data == ":");
+
             }
         }
 
-        private void Compound_Statement()
+        private List<Statement> Compound_Statement()
         {
-            Consume(KEYWORD.BEGIN);
-            Optional_Statements();
-            Consume(KEYWORD.END);
+            Consume(KeyWord.BEGIN);
+            return Optional_Statements();
+            Consume(KeyWord.END);
         }
 
-        private void Optional_Statements()
+        private List<Statement> Optional_Statements()
         {
-            if(!current.Match(KEYWORD.END))
+            if (!current.Match(KeyWord.END))
             {
-                Statement_List();
+                return Statement_List();
             }
+            return null;
         }
 
         private List<Statement> Statement_List()
         {
             List<Statement> statements = new List<Statement>();
             statements.Add(Statement());
-            while (!(current.data == ";"))
+            while ((current.data == ";"))
             {
-                Consume(TOKENTYPE.STOP);
-                statements.Add(Statement());
+                Consume(TokenType.STOP);
+                var temp = Statement();
+                if(temp != null) statements.Add(temp);
             }
             return statements;
         }
 
         private Statement Statement()
         {
-            if(scanner.Peek().TYPE == TOKENTYPE.ASSIGNOP)
+            if (scanner.Peek().TYPE == TokenType.ASSIGNOP)
             {
                 string varname = current.data;
-                Consume(TOKENTYPE.ID);
-                Consume(TOKENTYPE.ASSIGNOP);
+                Consume(TokenType.ID);
+                Consume(TokenType.ASSIGNOP);
                 Expression expression = Expression();
                 Assignment assignment = new Assignment(varname, expression);
                 return assignment;
             }
 
-            if(current.Match(KEYWORD.IF))
+            if (current.Match(KeyWord.IF))
             {
-                Consume(KEYWORD.IF);
+                Consume(KeyWord.IF);
                 Expression expression = Expression();
-                Consume(KEYWORD.THEN);
+                Consume(KeyWord.THEN);
                 Statement statement1 = Statement();
-                Consume(KEYWORD.ELSE);
+                Consume(KeyWord.ELSE);
                 Statement statement2 = Statement();
                 IfStatement ifstatement = new IfStatement(expression, statement1, statement2);
                 return ifstatement;
@@ -120,11 +122,100 @@ namespace Fitzpiler
 
         private Expression Expression()
         {
-            return null;
+            Expression expression = Term();
+            while (current.TYPE == TokenType.ADDOP)
+            {
+                Op operation = Op.ADD;
+                if (current.data == "+") operation = Op.ADD;
+                if (current.data == "-") operation = Op.SUB;
+                if (current.data == "&") operation = Op.AND;
+                Consume();
+                Expression expression2 = Term();
+                Expression newexpression = new Operation(expression, operation, expression2);
+                expression = newexpression;
+            }
+            while (current.TYPE == TokenType.RELOP)
+            {
+                Op operation = Op.ADD;
+                if (current.data == "=") operation = Op.EQ;
+                else if (current.data == "<=") operation = Op.LEQ;
+                else if (current.data == ">=") operation = Op.GEQ;
+                else if (current.data == ">") operation = Op.GRT;
+                else if (current.data == "<") operation = Op.LST;
+                Consume();
+                Expression expression2 = Term();
+                Expression newexpression = new Operation(expression, operation, expression2);
+                expression = newexpression;
+            }
+            return expression;
         }
-        public void Consume(KEYWORD key)
+
+        private Expression Term()
         {
-            if(current.Match(key))
+            Expression expression = null;
+            do
+            {
+                if (current.Match(TokenType.NUM))
+                {
+                    expression = new Number(current.data);
+                    Consume(TokenType.NUM);
+                }
+                else if (current.data == "-")
+                {
+                    Consume(TokenType.ADDOP);
+                    Expression expression1 = new Number("0");
+                    Expression expression2 = Expression();
+                    expression = new Operation(expression1, Op.SUB, expression2);
+                }
+                else if (current.data == "+")
+                {
+                    Consume(TokenType.ADDOP);
+                    expression = Term();
+                }
+                else if (current.data == "(")
+                {
+
+                }
+                else if (current.data == "NOT")
+                {
+
+                }
+                else if (current.Match(TokenType.ID))
+                {
+                    Variable variable = new Variable(current.data);
+                    Consume(TokenType.ID);
+                    if (current.data == "[")
+                    {
+                        //handle arrays here
+                    }
+                    else if (current.data == "(")
+                    {
+                        //Expression_List();
+                    }
+                    expression = variable;
+                }
+
+                if (current.Match(TokenType.MULOP))
+                {
+                    Token token = current;
+                    Consume();
+                    Expression expression2 = Term();
+                    Op operation = token.data == "*" ? Op.MULT : token.data == "/" ? Op.DIVIDE : token.data == "%" ? Op.MOD : Op.AND;
+                    expression = new Operation(expression, operation, expression2);
+                }
+            }
+            while (current.Match(TokenType.MULOP));
+
+            return expression;
+        }
+
+        //private List<Expression> Expression_List()
+        //{
+
+        //}
+        public void Consume(KeyWord key)
+        {
+            if (current.Match(key))
             {
                 current = scanner.Pop();
             }
@@ -133,9 +224,9 @@ namespace Fitzpiler
                 throw new ParseFailedException("Incorrect Keyword: " + current.data);
             }
         }
-        public void Consume(TOKENTYPE token)
+        public void Consume(TokenType token)
         {
-            if(current.Match(token))
+            if (current.Match(token))
             {
                 current = scanner.Pop();
             }
@@ -144,6 +235,11 @@ namespace Fitzpiler
                 throw new ParseFailedException("Incorrect syntax: " + current.data);
             }
         }
+        public void Consume()
+        {
+            current = scanner.Pop();
+        }
+
     }
 
 
@@ -153,6 +249,24 @@ namespace Fitzpiler
         public Dictionary<string, VarType> vartypes = new Dictionary<string, VarType>();
         public Dictionary<string, Subprogram> subprograms = new Dictionary<string, Subprogram>();
         public List<Statement> statements = new List<Statement>();
+
+        public string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("PROGRAM: " + this.id + "\nVariables:\n");
+            if(vartypes != null) foreach (var variable in vartypes.Keys) sb.Append("\t" + variable + ": " + vartypes[variable] + "\n");
+            sb.Append("Subprograms:\n");
+            if(subprograms != null) foreach (var subroutine in subprograms) sb.Append("\t" + subroutine + "\n");
+            sb.Append("Statements:\n");
+            if (statements != null)
+            {
+                foreach (Statement s in statements)
+                {
+                    sb.Append(s.ToString(0)+ "\n");
+                }
+            }
+            return sb.ToString();
+        }
     }
 
     

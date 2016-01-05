@@ -10,7 +10,7 @@ namespace Fitzpiler
     {
         private string program;
         private int ptr = 0;
-        private char[] charbuf = new char[32];//max size of 32 for any one token -- probably not used
+        private char[] charbuf = new char[32];//max size of 32 for any one token 
         private int bufcount = 0;
         public int line { get; private set; } = 0;
         public Tokenizer(string[] program)
@@ -43,7 +43,7 @@ namespace Fitzpiler
                     string s = BufToString(charbuf);
                     Array.Clear(charbuf, 0, 32);
                     bufcount = 0;
-                    t = new Token(TOKENTYPE.ID, s);
+                    t = new Token(TokenType.ID, s);
                 }
                 else if (c >= 48 && c <= 57) // Number
                 {
@@ -55,7 +55,8 @@ namespace Fitzpiler
                     string s = BufToString(charbuf);
                     Array.Clear(charbuf, 0, 32);
                     bufcount = 0;
-                    t = new Token(TOKENTYPE.NUM, s);
+                    t = new Token(TokenType.NUM, s);
+                    ptr--;
                 }
                 else if (c == 123) //Begin comment block
                 {
@@ -80,58 +81,58 @@ namespace Fitzpiler
                 {
                     if (program[ptr] == 61)
                     {
-                        t = new Token(TOKENTYPE.RELOP, program.Substring(ptr - 1, 2));
+                        t = new Token(TokenType.RELOP, program.Substring(ptr - 1, 2));
                         ptr += 2;
                     }
                     else
                     {
-                        t = new Token(TOKENTYPE.RELOP, c.ToString());
+                        t = new Token(TokenType.RELOP, c.ToString());
                         ptr++; ;
                     }
                 }
                 else if (c == 61) //Equal sign
                 {
-                    t = new Token(TOKENTYPE.RELOP, c.ToString());
+                    t = new Token(TokenType.RELOP, c.ToString());
                     ptr++; ;
                 }
                 else if (c == 43 || c == 45 || c == 124) // ADDOPs
                 {
-                    t = new Token(TOKENTYPE.ADDOP, c.ToString());
+                    t = new Token(TokenType.ADDOP, c.ToString());
                     ptr++;
                 }
                 else if (c == 42 || c == 47 || c == 38)// MULOPs
                 {
-                    t = new Token(TOKENTYPE.MULOP, c.ToString());
+                    t = new Token(TokenType.MULOP, c.ToString());
                     ptr++;
                 }
                 else if (c == 58 && program[ptr] == 61) // ASSIGNOP
                 {
-                    t = new Token(TOKENTYPE.ASSIGNOP, ":=");
+                    t = new Token(TokenType.ASSIGNOP, ":=");
                     ptr++;
                 }
                 else if(c == 59)
                 {
-                    t = new Token(TOKENTYPE.STOP, ";");
+                    t = new Token(TokenType.STOP, ";");
                     ptr++;
                 }
                 else if (c == 58 && program[ptr + 1] != 61)
                 {
-                    t = new Token(TOKENTYPE.STOP, ":");
+                    t = new Token(TokenType.STOP, ":");
                     ptr++;
                 }
                 else if (c == 46)
                 {
-                    t = new Token(TOKENTYPE.STOP, "."); 
+                    t = new Token(TokenType.STOP, "."); 
                     ptr++;
                 }
                 else if (c == 91)
                 {
-                    t = new Token(TOKENTYPE.STOP, "[");
+                    t = new Token(TokenType.STOP, "[");
                     ptr++;
                 }
                 else if (c == 93)
                 {
-                    t = new Token(TOKENTYPE.STOP, "]");
+                    t = new Token(TokenType.STOP, "]");
                     ptr++;
                 }
                 return t;
@@ -139,7 +140,7 @@ namespace Fitzpiler
             }
             catch(IndexOutOfRangeException e)
             {
-                throw new ParseFailedException("Unexpected character", e);
+               throw new ParseFailedException("Unexpected character", e);
             }
         }
         private static string BufToString(char[] str)
@@ -151,43 +152,43 @@ namespace Fitzpiler
     }
     class Token
     {
-        public TOKENTYPE TYPE;
+        public TokenType TYPE;
         public string data;
-        public Token(TOKENTYPE type, string data)
+        public Token(TokenType type, string data)
         {
             this.TYPE = type;
             this.data = data;
         }
         public override string ToString()
         {
-            if (this.TYPE == TOKENTYPE.ADDOP) return "ADDOP: " + this.data;
-            if (this.TYPE == TOKENTYPE.RELOP) return "RELOP: " + this.data;
-            if (this.TYPE == TOKENTYPE.MULOP) return "MULOP: " + this.data;
-            if (this.TYPE == TOKENTYPE.ID) return "ID: " + this.data;
-            if (this.TYPE == TOKENTYPE.NUM) return "NUM: " + this.data;
-            if (this.TYPE == TOKENTYPE.STOP) return "STOP:";
+            if (this.TYPE == TokenType.ADDOP) return "ADDOP: " + this.data;
+            if (this.TYPE == TokenType.RELOP) return "RELOP: " + this.data;
+            if (this.TYPE == TokenType.MULOP) return "MULOP: " + this.data;
+            if (this.TYPE == TokenType.ID) return "ID: " + this.data;
+            if (this.TYPE == TokenType.NUM) return "NUM: " + this.data;
+            if (this.TYPE == TokenType.STOP) return "STOP:";
             return "ASSIGNOP: " + this.data;
         }
-        public bool Match(KEYWORD keyword)
+        public bool Match(KeyWord keyword)
         {
             var str = this.data;
-            if (keyword == KEYWORD.ARRAY && str == "ARRAY") return true;
-            if (keyword == KEYWORD.BEGIN && str == "BEGIN") return true;
-            if (keyword == KEYWORD.END && str == "END") return true;
-            if (keyword == KEYWORD.REAL && str == "REAL") return true;
-            if (keyword == KEYWORD.INTEGER && str == "INTEGER") return true;
-            if (keyword == KEYWORD.NOT && str == "NOT") return true;
-            if (keyword == KEYWORD.IF && str == "IF") return true;
-            if (keyword == KEYWORD.WHILE && str == "WHILE") return true;
-            if (keyword == KEYWORD.READ && str == "READ") return true;
-            if (keyword == KEYWORD.WRITE && str == "WRITE") return true;
-            if (keyword == KEYWORD.FUNCTION && str == "FUNCTION") return true;
-            if (keyword == KEYWORD.PROCEDURE && str == "PROCEDURE") return true;
-            if (keyword == KEYWORD.PROGRAM && str == "PROGRAM") return true;
-            if (keyword == KEYWORD.VAR && str == "VAR") return true;
+            if (keyword == KeyWord.ARRAY && str == "ARRAY") return true;
+            if (keyword == KeyWord.BEGIN && str == "BEGIN") return true;
+            if (keyword == KeyWord.END && str == "END") return true;
+            if (keyword == KeyWord.REAL && str == "REAL") return true;
+            if (keyword == KeyWord.INTEGER && str == "INTEGER") return true;
+            if (keyword == KeyWord.NOT && str == "NOT") return true;
+            if (keyword == KeyWord.IF && str == "IF") return true;
+            if (keyword == KeyWord.WHILE && str == "WHILE") return true;
+            if (keyword == KeyWord.READ && str == "READ") return true;
+            if (keyword == KeyWord.WRITE && str == "WRITE") return true;
+            if (keyword == KeyWord.FUNCTION && str == "FUNCTION") return true;
+            if (keyword == KeyWord.PROCEDURE && str == "PROCEDURE") return true;
+            if (keyword == KeyWord.PROGRAM && str == "PROGRAM") return true;
+            if (keyword == KeyWord.VAR && str == "VAR") return true;
             return false;
         }
-        public bool Match(TOKENTYPE tokentype)
+        public bool Match(TokenType tokentype)
         {
             if (tokentype == this.TYPE) return true;
             return false;
