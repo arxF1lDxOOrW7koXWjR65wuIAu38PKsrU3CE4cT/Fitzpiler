@@ -28,7 +28,7 @@ namespace Fitzpiler
             }
             catch(ParseFailedException e)
             {
-                Console.WriteLine("Tokenization failed:" + tokenizer.line + "\n\t" +  e.Message);
+                Console.WriteLine("Tokenization failed:\n\t" +  e.Message);
             }
         }
         public Token Pop()

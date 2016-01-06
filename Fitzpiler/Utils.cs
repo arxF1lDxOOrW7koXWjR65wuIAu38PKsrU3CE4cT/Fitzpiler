@@ -33,7 +33,9 @@ namespace Fitzpiler
         WRITE,
         NOT,
         THEN,
-        ELSE
+        ELSE,
+        DO,
+        OF
     }
     
 }

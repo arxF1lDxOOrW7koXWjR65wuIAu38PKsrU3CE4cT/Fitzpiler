@@ -12,7 +12,6 @@ namespace Fitzpiler
         private int ptr = 0;
         private char[] charbuf = new char[32];//max size of 32 for any one token 
         private int bufcount = 0;
-        public int line { get; private set; } = 0;
         public Tokenizer(string[] program)
         {
             StringBuilder sb = new StringBuilder();
@@ -29,28 +28,36 @@ namespace Fitzpiler
                 char c = program[ptr++];
                 while (c == ' ' || c == '\n')
                 {
-                    if (c == '\n') line++;
                     c = program[ptr++];
                 }
                 Token t = null;
-                if (c > 64 && c < 123) // Letter
+                if (c > 64 && c < 123 && c != 93 && c != 91) // Letter
                 {
                     do
                     {
+                        if (c == 91 || c == 93)
+                        {
+                            ptr--;
+                            break;
+                        }
                         charbuf[bufcount++] = c;
                         c = program.Length > ptr ? program[ptr++] : (char)0;
-                    } while ((c > 64 && c < 123) || c >= 48 && c <= 57);
+                    } while (((c > 64 && c < 123) || c >= 48 && c <= 57));
                     string s = BufToString(charbuf);
                     Array.Clear(charbuf, 0, 32);
                     bufcount = 0;
                     t = new Token(TokenType.ID, s);
+                    if (c == '(' || c == ',' || c== ';')
+                    {
+                        ptr--;
+                    }
                 }
                 else if (c >= 48 && c <= 57) // Number
                 {
                     do
                     {
                         charbuf[bufcount++] = c;
-                        c = program.Length > ptr ? program[ptr++] : (char) 0;
+                        c = program.Length > ptr ? program[ptr++] : (char)0;
                     } while (c >= 48 && c <= 57);
                     string s = BufToString(charbuf);
                     Array.Clear(charbuf, 0, 32);
@@ -62,7 +69,7 @@ namespace Fitzpiler
                 {
                     int commentCount = 0;
                     int commentEnd = 0;
-                    for(int i = ptr; i < program.Length; i++)
+                    for (int i = ptr; i < program.Length; i++)
                     {
                         if (program[i] == '}' && commentCount == 0)
                         {
@@ -110,7 +117,7 @@ namespace Fitzpiler
                     t = new Token(TokenType.ASSIGNOP, ":=");
                     ptr++;
                 }
-                else if(c == 59)
+                else if (c == 59)
                 {
                     t = new Token(TokenType.STOP, ";");
                     ptr++;
@@ -122,18 +129,29 @@ namespace Fitzpiler
                 }
                 else if (c == 46)
                 {
-                    t = new Token(TokenType.STOP, "."); 
+                    t = new Token(TokenType.STOP, ".");
                     ptr++;
                 }
                 else if (c == 91)
                 {
                     t = new Token(TokenType.STOP, "[");
-                    ptr++;
                 }
                 else if (c == 93)
                 {
                     t = new Token(TokenType.STOP, "]");
                     ptr++;
+                }
+                else if (c == '(')
+                {
+                    t = new Token(TokenType.STOP, "(");
+                }
+                else if (c == ')')
+                {
+                    t = new Token(TokenType.STOP, ")");
+                }
+                else if (c == ',')
+                {
+                    t = new Token(TokenType.STOP, ",");
                 }
                 return t;
 
@@ -178,8 +196,12 @@ namespace Fitzpiler
             if (keyword == KeyWord.REAL && str == "REAL") return true;
             if (keyword == KeyWord.INTEGER && str == "INTEGER") return true;
             if (keyword == KeyWord.NOT && str == "NOT") return true;
+            if (keyword == KeyWord.OF && str == "OF") return true;
             if (keyword == KeyWord.IF && str == "IF") return true;
+            if (keyword == KeyWord.THEN && str == "THEN") return true;
+            if (keyword == KeyWord.ELSE && str == "ELSE") return true;
             if (keyword == KeyWord.WHILE && str == "WHILE") return true;
+            if (keyword == KeyWord.DO && str == "DO") return true;
             if (keyword == KeyWord.READ && str == "READ") return true;
             if (keyword == KeyWord.WRITE && str == "WRITE") return true;
             if (keyword == KeyWord.FUNCTION && str == "FUNCTION") return true;
