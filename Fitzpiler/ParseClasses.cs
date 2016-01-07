@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    enum VarType // Realarray should not be used
+    enum VarType
     {
         INTEGER,
         REAL,
         FUNCTION,
         REALARRAY,
-        INTEGERARRAY
+        INTEGERARRAY,
+        VOID
     }
 
     abstract class Statement
@@ -20,6 +21,11 @@ namespace Fitzpiler
         public virtual string ToString(int level)
         {
             return "\n";
+        }
+
+        public virtual IEnumerable<string> GetVars()
+        {
+            yield return null;
         }
     }
 
@@ -41,11 +47,35 @@ namespace Fitzpiler
             outstr += expression.ToString(level + 1);
             return outstr;
         }
+        public override IEnumerable<string> GetVars()
+        {
+            yield return this.variable.varname;
+            if (this.variable.accessor != null) foreach (string s in this.variable.accessor.GetVars()) yield return s;
+            foreach (string s in this.expression.GetVars()) yield return s;
+        }
+    }
+
+    class Procedure : Statement
+    {
+        public string funcname { get; }
+        public List<Expression> arguments { get; }
+        public Procedure(string funcname, List<Expression> args)
+        {
+            this.funcname = funcname;
+            this.arguments = args;
+        }
+        public override string ToString(int level)
+        {
+            string outstr = "";
+            for (int i = 0; i < level; i++) outstr += "-";
+            outstr += "PROC." + this.funcname + "\n";
+            foreach (Expression arg in arguments) outstr += "|" + arg.ToString(level);
+            return outstr;
+        }
     }
 
     class IfStatement : Statement
     {
-
         public IfStatement(Expression expression1, Statement statement1, Statement statement2)
         {
             this.expression = expression1;
@@ -53,9 +83,9 @@ namespace Fitzpiler
             this.statement2 = statement2;
         }
 
-       public Expression expression { get; }
-       public Statement statement1 { get; } 
-       public Statement statement2 { get; } 
+        public Expression expression { get; }
+        public Statement statement1 { get; }
+        public Statement statement2 { get; }
 
         public override string ToString(int level)
         {
@@ -69,6 +99,13 @@ namespace Fitzpiler
             outstr += "ELSE: \n";
             outstr += statement2.ToString(level + 1) + "\n";
             return outstr;
+        }
+
+        public override IEnumerable<string> GetVars()
+        {
+            foreach (string s in this.expression.GetVars()) yield return s;
+            foreach (string s in this.statement1.GetVars()) yield return s;
+            foreach (string s in this.statement2.GetVars()) yield return s;
         }
     }
 
@@ -95,18 +132,69 @@ namespace Fitzpiler
             outstr += statement.ToString(level + 1) + "\n";
             return outstr;
         }
+        public override IEnumerable<string> GetVars()
+        {
+            foreach (string s in this.expression.GetVars()) yield return s;
+            foreach (string s in this.statement.GetVars()) yield return s;
+        }
+    }
+
+    class ReadStatement : Statement
+    {
+        public Variable variable { get; }
+        public ReadStatement(Variable variable)
+        {
+            this.variable = variable;
+        }
+        public override string ToString(int level)
+        {
+            string outstr = "";
+            for (int i = 0; i < level; i++) outstr += "-";
+            outstr += "SYS.READ\n";
+            outstr += variable.ToString(level + 1);
+            return outstr;
+        }
+        public override IEnumerable<string> GetVars()
+        {
+            yield return variable.varname;
+        }
+    }
+
+    class WriteStatement : Statement
+    {
+        public Expression expression { get; }
+        public WriteStatement(Expression expression)
+        {
+            this.expression = expression;
+        }
+        public override string ToString(int level)
+        {
+            string outstr = "";
+            for (int i = 0; i < level; i++) outstr += "-";
+            outstr += "SYS.WRITE\n";
+            outstr += expression.ToString(level + 1);
+            return outstr;
+        }
+        public override IEnumerable<string> GetVars()
+        {
+            foreach (string s in expression.GetVars()) yield return s;
+        }
     }
 
     abstract class Expression
     {
         public virtual string ToString(int level) { return "\n"; }
+        public virtual IEnumerable<string> GetVars()
+        {
+            yield return null;
+        }
     }
 
     class Operation : Expression
     {
-        Expression expression1;
-        Op operation;
-        Expression expression2;
+        public Expression expression1 { get; }
+        public Op operation { get; }
+        public Expression expression2 { get; }
 
         public Operation(Expression expression1, Op operation, Expression expression2)
         {
@@ -153,6 +241,11 @@ namespace Fitzpiler
             outstr += expression2.ToString(level + 1);
             return outstr;
         }
+        public override IEnumerable<string> GetVars()
+        {
+            foreach (string s in this.expression1.GetVars()) yield return s;
+            foreach (string s in this.expression2.GetVars()) yield return s;
+        }
     }
 
     enum Op
@@ -192,8 +285,31 @@ namespace Fitzpiler
             if (this.accessor != null) outstr += "\n-ARRAY.ACCESS\n" + this.accessor.ToString(level + 1);
             return outstr;
         }
+        public override IEnumerable<string> GetVars()
+        {
+            yield return this.varname;
+        }
     }
 
+    class Function : Expression
+    {
+        string funcname { get; }
+        List<Expression> arguments { get; }
+
+        public Function(string funcname, List<Expression> args)
+        {
+            this.funcname = funcname;
+            this.arguments = args;
+        }
+        public override string ToString(int level)
+        {
+            string outstr = "";
+            for (int i = 0; i < level; i++) outstr += "-";
+            outstr += "FUNC." + this.funcname + "\n";
+            foreach (Expression arg in arguments) outstr += "|" + arg.ToString(level);
+            return outstr;
+        }
+    }
 
     class Number : Expression
     {
@@ -215,21 +331,22 @@ namespace Fitzpiler
         public string name { get; }
         public Dictionary<string, VarType> vartypes { get; set; }
         public List<Statement> statements { get; set; }
-        public Dictionary<string, VarType> arguments { get; }
+        public Dictionary<string, VarType> parameters { get; }
         public VarType returnType { get; }
         public Subroutine(string name, Dictionary<string, VarType> args, VarType returnType)
         {
             this.name = name;
-            this.arguments = args;
+            this.parameters = args;
             this.returnType = returnType;
         }
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("\nFUNCTION: " + this.name + "\nVariables:\n");
-            if (vartypes != null) foreach (var variable in vartypes.Keys) sb.Append("\t" + variable + ": " + vartypes[variable] + "\n");
-         //   sb.Append("\nSubprograms:\n");
-       //     if (subprograms != null) foreach (var subroutine in subprograms) sb.Append("\t" + subroutine + "\n");
+            if (this.returnType == VarType.VOID) sb.Append("\nPROCEDURE:\n\t");
+            else sb.Append("\nFUNCTION:\n\t");
+            sb.Append(this.name + "\n\nReturn Type:\n\t" + this.returnType + "\n\nParameters:");
+            foreach (var parameter in this.parameters.Keys) sb.Append("\n\t" + parameter + ":\t" + this.parameters[parameter] + "\n\nVariables:\n");
+            if (vartypes != null) foreach (var variable in vartypes.Keys) sb.Append("\t" + variable + ":\t" + vartypes[variable] + "\n");
             sb.Append("\nStatements:\n");
             if (statements != null)
             {
@@ -253,12 +370,6 @@ namespace Fitzpiler
         }
     }
 
-    class Function
-    {
-        VarType returntype;
-        Dictionary<string, VarType> vartypes;
-        List<Statement> statements;
-    }
     class Program
     {
         public string id;
@@ -281,7 +392,31 @@ namespace Fitzpiler
                     sb.Append("\n\n" + s.ToString(0));
                 }
             }
+            sb.Append("\n\n---------------------------------------------------\n\n");
             return sb.ToString();
+        }
+
+        internal bool Verify()
+        {
+            foreach (Subroutine routine in this.subprograms.Values)
+            {
+                foreach (Statement state in routine.statements)
+                {
+                    foreach(string s in state.GetVars())
+                    {
+                        if (s != null && !routine.vartypes.ContainsKey(s)) return false;
+                    }
+                }
+            }
+
+            foreach(Statement state in this.statements)
+            {
+                foreach (string s in state.GetVars())
+                {
+                    if (s != null && !this.vartypes.ContainsKey(s)) return false;
+                }
+            }
+            return true;
         }
     }
 }

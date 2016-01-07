@@ -47,7 +47,7 @@ namespace Fitzpiler
                     Array.Clear(charbuf, 0, 32);
                     bufcount = 0;
                     t = new Token(TokenType.ID, s);
-                    if (c == '(' || c == ',' || c== ';')
+                    if (c == '(' || c == ',' || c== ';' || c == ')')
                     {
                         ptr--;
                     }

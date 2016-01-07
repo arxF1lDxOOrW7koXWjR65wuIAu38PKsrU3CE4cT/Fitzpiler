@@ -24,60 +24,134 @@ namespace Fitzpiler
 
                 this.program.vartypes = Declarations();
                 this.program.subprograms = new Dictionary<string, Subroutine>();
-                foreach(Subroutine s in Subprogram_Declarations(new List<Subroutine>()))
+                foreach (Subroutine s in Subprogram_Declarations(new List<Subroutine>()))
                 {
                     this.program.subprograms.Add(s.name, s);
                 }
                 this.program.statements = Compound_Statement();
-                Console.Write(program.ToString());
+
+                bool parseSuccessful = this.program.Verify();
+                if (!parseSuccessful)
+                {
+                    throw new ParseFailedException("Variable used without declaration");
+                }
+                else
+                    Console.Write(program.ToString());
             }
             catch (ParseFailedException e)
             {
-                Console.WriteLine("Tokenization failed:\n\t" + e.Message);
+                Console.WriteLine("Parse failed:\n\t" + e.Message);
             }
         }
 
         private List<Subroutine> Subprogram_Declarations(List<Subroutine> subroutines)
         {
-            Subroutine subroutine = Subprogram_Head();
-            if (subroutine != null) subroutines.Add(subroutine);
-            subroutine.vartypes = Declarations();
-            subroutine.statements = Compound_Statement();
+            while (current.data == "FUNCTION" || current.data == "PROCEDURE")
+            {
+                Subroutine subroutine = Subprogram_Head();
+                if (subroutine != null) subroutines.Add(subroutine);
+                if (current.TYPE == TokenType.STOP) Consume();
+                subroutine.vartypes = Declarations();
+                if (current.TYPE == TokenType.STOP) Consume();
+                subroutine.statements = Compound_Statement();
+            }
             return subroutines;
         }
 
         private Subroutine Subprogram_Head()
         {
-            if (current.data == "FUNCTION")
+            bool func = current.data == "FUNCTION" ? true : false;
+
+            Dictionary<string, VarType> parameters = new Dictionary<string, VarType>();
+            Consume();
+            string funcname = current.data;
+            Consume(TokenType.ID);
+            if (current.data == "(")
             {
-                Consume();
-                string funcname = current.data;
-                Consume(TokenType.ID);
-                if (current.data == "(")
+                Consume(TokenType.STOP);
+                do
                 {
-                    Consume(TokenType.STOP);
-                    while (current.data != ")")
-                    {
-                        string argname = current.data;
-                        Consume(TokenType.ID);
-                    }
-                }
-                else
-                {
+                    string argname = current.data;
+                    Consume(TokenType.ID);
                     Consume(TokenType.STOP);
                     switch (current.data)
                     {
                         case "INTEGER":
                             Consume(KeyWord.INTEGER);
-                            Consume(TokenType.STOP);
-                            return new Subroutine(funcname, null, VarType.INTEGER);
+                            parameters.Add(argname, VarType.INTEGER);
+                            break;
+
                         case "REAL":
                             Consume(KeyWord.REAL);
-                            Consume(TokenType.STOP);
-                            return new Subroutine(funcname, null, VarType.INTEGER);
+                            parameters.Add(argname, VarType.REAL);
+                            break;
+                        case "ARRAY":
+                            Consume(KeyWord.ARRAY);
+                            Consume();
+                            Number begindex = new Number(current.data);
+                            Consume(TokenType.NUM);
+                            Consume();
+                            Number endex = new Number(current.data);
+                            Consume(TokenType.NUM);//should probably do something with these at some point
+                            Consume();
+                            Consume(KeyWord.OF);
+                            if (current.data == "INTEGER")
+                            {
+                                Consume(KeyWord.INTEGER);
+                                parameters.Add(argname, VarType.INTEGERARRAY);
+                            }
+                            else if (current.data == "REAL")
+                            {
+                                Consume(KeyWord.REAL);
+                                parameters.Add(argname, VarType.REALARRAY);
+                            }
+                            break;
                     }
+                } while (current.data != ")");
+                Consume(TokenType.STOP);
+            }
+
+            if (func)
+            {
+                Consume(TokenType.STOP);
+                switch (current.data)
+                {
+                    case "INTEGER":
+                        Consume(KeyWord.INTEGER);
+                        Consume(TokenType.STOP);
+                        return new Subroutine(funcname, parameters, VarType.INTEGER);
+                    case "REAL":
+                        Consume(KeyWord.REAL);
+                        Consume(TokenType.STOP);
+                        return new Subroutine(funcname, parameters, VarType.INTEGER);
+                    case "ARRAY":
+                        Consume(KeyWord.ARRAY);
+                        Consume();
+                        Number begindex = new Number(current.data);
+                        Consume(TokenType.NUM);
+                        Consume();
+                        Number endex = new Number(current.data);
+                        Consume(TokenType.NUM);//should probably do something with these at some point
+                        Consume();
+                        Consume(KeyWord.OF);
+                        if (current.data == "INTEGER")
+                        {
+                            Consume(KeyWord.INTEGER);
+                            return new Subroutine(funcname, parameters, VarType.INTEGERARRAY);
+                        }
+                        else if (current.data == "REAL")
+                        {
+                            Consume(KeyWord.REAL);
+                            return new Subroutine(funcname, parameters, VarType.REALARRAY);
+                        }
+                        break;
                 }
             }
+            else
+            {
+                return new Subroutine(funcname, parameters, VarType.VOID);
+            }
+            if (current.Match(TokenType.STOP)) Consume();
             return null;
         }
         private Dictionary<string, VarType> Declarations()
@@ -134,7 +208,7 @@ namespace Fitzpiler
                             Consume(KeyWord.REAL);
                         }
                     }
-                    Consume(TokenType.STOP);
+                    if (current.TYPE == TokenType.STOP) Consume();
                 } while (current.data != "BEGIN" && current.data != "FUNCTION" && current.data != "PROCEDURE");
             }
             return vartypes;
@@ -176,18 +250,15 @@ namespace Fitzpiler
             if (scanner.Peek().TYPE == TokenType.ASSIGNOP)
             {
                 Variable variable = new Variable(current.data);
-                if (!this.program.vartypes.ContainsKey(current.data)) throw new ParseFailedException("Undeclaired variable used: " + current.data);
                 Consume(TokenType.ID);
                 Consume(TokenType.ASSIGNOP);
                 Expression expression = Expression();
                 Assignment assignment = new Assignment(variable, expression);
                 statement = assignment;
             }
-            if(scanner.Peek().data == "[")
+            else if(scanner.Peek().data == "[")
             {
                 string varname = current.data;
-                if (!this.program.vartypes.ContainsKey(current.data)) throw new ParseFailedException("Undeclaired variable used: " + current.data);
-                else if (this.program.vartypes[current.data] != VarType.INTEGERARRAY && this.program.vartypes[current.data] != VarType.REALARRAY) throw new ParseFailedException("Non-array variable accessed as an array:  " + current.data); 
                 Consume(TokenType.ID);
                 Consume();
                 Expression expression = Expression();
@@ -199,7 +270,7 @@ namespace Fitzpiler
                 statement = assignment;
             }
 
-            if (current.Match(KeyWord.IF))
+            else if (current.Match(KeyWord.IF))
             {
                 Consume(KeyWord.IF);
                 Expression expression = Expression();
@@ -210,13 +281,39 @@ namespace Fitzpiler
                 IfStatement ifstatement = new IfStatement(expression, statement1, statement2);
                 statement = ifstatement;
             }
-            if (current.Match(KeyWord.WHILE))
+            else if (current.Match(KeyWord.WHILE))
             {
                 Consume(KeyWord.WHILE);
                 Expression expression = Expression();
                 Consume(KeyWord.DO);
                 Statement statement1 = Statement();
                 statement = new WhileStatement(expression, statement1);
+            }
+            else if (current.Match(KeyWord.READ))
+            {
+                Consume(KeyWord.READ);
+                Consume(TokenType.STOP);
+                Variable variable = new Variable(current.data);
+                Consume(TokenType.ID);
+                Consume(TokenType.STOP);
+                statement = new ReadStatement(variable);
+            }
+            else if (current.Match(KeyWord.WRITE))
+            {
+                Consume(KeyWord.WRITE);
+                Consume(TokenType.STOP);
+                Expression expression = Expression();
+                Consume(TokenType.STOP);
+                statement = new WriteStatement(expression);
+            }
+            else if (this.program.subprograms.ContainsKey(current.data))
+            {
+                string funcname = current.data;
+                Consume(TokenType.ID);
+                Consume(TokenType.STOP);
+                List<Expression> arguments = ExpressionList();
+                Consume(TokenType.STOP);
+                statement = new Procedure(funcname, arguments);
             }
             return statement;
 
@@ -307,8 +404,12 @@ namespace Fitzpiler
                     }
                     else if (current.data == "(")
                     {
+                        Consume();
                         List<Expression> expressionList = ExpressionList();
+                        // move this validation to the verifier
                         if (!this.program.subprograms.ContainsKey(variable.varname)) throw new ParseFailedException("Use of unregistered subroutine:  " + variable.varname);
+                        expression = new Function(variable.varname, expressionList);
+                        Consume();
                     }
                     else
                     {
