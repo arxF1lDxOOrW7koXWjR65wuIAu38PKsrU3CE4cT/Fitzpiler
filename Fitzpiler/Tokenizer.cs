@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    class Tokenizer
+    public class Tokenizer
     {
         private string program;
         private int ptr = 0;
@@ -168,7 +168,7 @@ namespace Fitzpiler
             return sb.ToString();
         }
     }
-    class Token
+    public class Token
     {
         public TokenType TYPE;
         public string data;

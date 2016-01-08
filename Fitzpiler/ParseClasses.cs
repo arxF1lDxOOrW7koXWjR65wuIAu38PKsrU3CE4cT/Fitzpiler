@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    enum VarType
+    public enum VarType
     {
         INTEGER,
         REAL,
@@ -16,7 +16,7 @@ namespace Fitzpiler
         VOID
     }
 
-    abstract class Statement
+    public abstract class Statement
     {
         public virtual string ToString(int level)
         {
@@ -181,7 +181,7 @@ namespace Fitzpiler
         }
     }
 
-    abstract class Expression
+    public abstract class Expression
     {
         public virtual string ToString(int level) { return "\n"; }
         public virtual IEnumerable<string> GetVars()
@@ -326,7 +326,7 @@ namespace Fitzpiler
     }
 
 
-    class Subroutine : Expression
+    public class Subroutine : Expression
     {
         public string name { get; }
         public Dictionary<string, VarType> vartypes { get; set; }
@@ -370,7 +370,7 @@ namespace Fitzpiler
         }
     }
 
-    class Program
+    public class Program
     {
         public string id;
         public Dictionary<string, VarType> vartypes = new Dictionary<string, VarType>();
@@ -396,7 +396,7 @@ namespace Fitzpiler
             return sb.ToString();
         }
 
-        internal bool Verify()
+        public bool Verify()
         {
             foreach (Subroutine routine in this.subprograms.Values)
             {

@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Exceptions.cs" />
+    <Compile Include="Generator.cs" />
     <Compile Include="ParseClasses.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Program.cs" />

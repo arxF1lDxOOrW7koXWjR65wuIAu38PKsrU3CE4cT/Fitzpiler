@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    class Scanner
+    public class Scanner
     {
         private string[] program;
         private Queue<Token> queue = new Queue<Token>();

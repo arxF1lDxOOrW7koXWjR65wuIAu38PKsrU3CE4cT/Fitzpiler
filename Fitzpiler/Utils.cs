@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    enum TokenType
+    public enum TokenType
     {
         NUM,
         ID,
@@ -16,7 +16,7 @@ namespace Fitzpiler
         ASSIGNOP,
         STOP
     }
-    enum KeyWord
+    public enum KeyWord
     {
         PROGRAM,
         VAR,

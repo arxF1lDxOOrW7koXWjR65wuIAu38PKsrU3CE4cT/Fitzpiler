@@ -11,16 +11,20 @@ namespace Fitzpiler
     {
         static void Main(string[] args)
         {
-            string filepath = args[0];
+            string inFilePath = args[0];
+            string outFilePath = args[1];
             try
             {
-                string[] program = File.ReadAllLines(filepath);
+                string[] program = File.ReadAllLines(inFilePath);
                 Scanner scanner = new Scanner(program);
                 Parser parser = new Parser(scanner);
+                Generator generator = new Generator(parser.program);
+                Console.Write(generator.ToString());
+                File.WriteAllText(outFilePath, generator.ToString());
             }
             catch(IOException e)
             {
-                Console.WriteLine("Could not open file for reading[" + filepath + "]");
+                Console.WriteLine("Could not open file for reading[" + inFilePath + "]");
             }
 
         }

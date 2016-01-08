@@ -1,0 +1,32 @@
+﻿PROGRAM testy
+VAR
+    temp, tempy : INTEGER;
+    test : ARRAY [1 : 10] OF REAL
+FUNCTION testfunc (testarg : ARRAY [1 : 10] OF INTEGER) : ARRAY [1 : 10] OF REAL;
+VAR
+    temp2 : REAL;
+BEGIN
+    temp2 := 1;
+END
+PROCEDURE testproc;
+VAR
+    temp2 : REAL;
+BEGIN
+    temp2 := 1;
+END
+BEGIN
+    temp := testfunc(2);
+    testproc (4);
+   { temp := testfunc2(4) * (3 + 4) + (4 + tempy);}
+    test[2] := - 3;
+    temp := 5 * 6 + 2 * 4;
+    temp := 1 + 5 <= 3 + 9;
+    IF temp = 5 THEN
+    temp := 6 ELSE
+    temp := 1;
+    WHILE temp = 2 DO
+    temp := 4;
+    READ (temp);
+    WRITE (temp + 5);
+END
+.

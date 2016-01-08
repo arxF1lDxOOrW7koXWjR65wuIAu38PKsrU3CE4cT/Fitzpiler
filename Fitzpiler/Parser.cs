@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    class Parser
+    public class Parser
     {
         Scanner scanner;
-        Program program;
+        public Program program { get; }
         Token current;
         public Parser(Scanner scanner)
         {
@@ -36,7 +36,9 @@ namespace Fitzpiler
                     throw new ParseFailedException("Variable used without declaration");
                 }
                 else
-                    Console.Write(program.ToString());
+                {
+                    //   Console.Write(program.ToString());
+                }
             }
             catch (ParseFailedException e)
             {
