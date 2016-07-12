@@ -1,43 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
     public class Parser
     {
-        Scanner scanner;
-        public Program program { get; }
-        Token current;
+        private Token _current;
+        private readonly Scanner _scanner;
+
         public Parser(Scanner scanner)
         {
-            this.scanner = scanner;
-            this.program = new Program();
+            this._scanner = scanner;
+            Program = new Program();
             try
             {
-                current = scanner.Pop();
-                Consume(KeyWord.PROGRAM);
-                this.program.id = current.data;
-                Consume(TokenType.ID);
+                _current = scanner.Pop();
+                Consume(KeyWord.Program);
+                Program.Id = _current.Data;
+                Consume(TokenType.Id);
 
-                this.program.vartypes = Declarations();
-                this.program.subprograms = new Dictionary<string, Subroutine>();
-                foreach (Subroutine s in Subprogram_Declarations(new List<Subroutine>()))
+                Program.Vartypes = Declarations();
+                Program.Subprograms = new Dictionary<string, Subroutine>();
+                foreach (var s in Subprogram_Declarations(new List<Subroutine>()))
                 {
-                    this.program.subprograms.Add(s.name, s);
+                    Program.Subprograms.Add(s.Name, s);
                 }
-                this.program.statements = Compound_Statement();
+                Program.Statements = Compound_Statement();
 
-                bool parseSuccessful = this.program.Verify();
+                var parseSuccessful = Program.Verify();
                 if (!parseSuccessful)
                 {
                     throw new ParseFailedException("Variable used without declaration");
-                }
-                else
-                {
-                    //   Console.Write(program.ToString());
                 }
             }
             catch (ParseFailedException e)
@@ -46,187 +40,193 @@ namespace Fitzpiler
             }
         }
 
+        public Program Program { get; }
+
         private List<Subroutine> Subprogram_Declarations(List<Subroutine> subroutines)
         {
-            while (current.data == "FUNCTION" || current.data == "PROCEDURE")
+            while (_current.Data == "FUNCTION" || _current.Data == "PROCEDURE")
             {
-                Subroutine subroutine = Subprogram_Head();
+                var subroutine = Subprogram_Head();
                 if (subroutine != null) subroutines.Add(subroutine);
-                if (current.TYPE == TokenType.STOP) Consume();
-                subroutine.vartypes = Declarations();
-                if (current.TYPE == TokenType.STOP) Consume();
-                subroutine.statements = Compound_Statement();
+                if (_current.Type == TokenType.Stop) Consume();
+                if (subroutine == null) continue;
+                subroutine.Vartypes = Declarations();
+                if (_current.Type == TokenType.Stop) Consume();
+                subroutine.Statements = Compound_Statement();
             }
             return subroutines;
         }
 
         private Subroutine Subprogram_Head()
         {
-            bool func = current.data == "FUNCTION" ? true : false;
+            var func = _current.Data == "FUNCTION";
 
-            Dictionary<string, VarType> parameters = new Dictionary<string, VarType>();
+            var parameters = new Dictionary<string, VarType>();
             Consume();
-            string funcname = current.data;
-            Consume(TokenType.ID);
-            if (current.data == "(")
+            var funcname = _current.Data;
+            Consume(TokenType.Id);
+            if (_current.Data == "(")
             {
-                Consume(TokenType.STOP);
+                Consume(TokenType.Stop);
                 do
                 {
-                    string argname = current.data;
-                    Consume(TokenType.ID);
-                    Consume(TokenType.STOP);
-                    switch (current.data)
+                    var argname = _current.Data;
+                    Consume(TokenType.Id);
+                    Consume(TokenType.Stop);
+                    switch (_current.Data)
                     {
                         case "INTEGER":
-                            Consume(KeyWord.INTEGER);
-                            parameters.Add(argname, VarType.INTEGER);
+                            Consume(KeyWord.Integer);
+                            parameters.Add(argname, VarType.Integer);
                             break;
 
                         case "REAL":
-                            Consume(KeyWord.REAL);
-                            parameters.Add(argname, VarType.REAL);
+                            Consume(KeyWord.Real);
+                            parameters.Add(argname, VarType.Real);
                             break;
                         case "ARRAY":
-                            Consume(KeyWord.ARRAY);
+                            Consume(KeyWord.Array);
                             Consume();
-                            Number begindex = new Number(current.data);
-                            Consume(TokenType.NUM);
+                            var begindex = new Number(_current.Data);
+                            Consume(TokenType.Num);
                             Consume();
-                            Number endex = new Number(current.data);
-                            Consume(TokenType.NUM);//should probably do something with these at some point
+                            var endex = new Number(_current.Data);
+                            Consume(TokenType.Num); //should probably do something with these at some point
                             Consume();
-                            Consume(KeyWord.OF);
-                            if (current.data == "INTEGER")
+                            Consume(KeyWord.Of);
+                            if (_current.Data == "INTEGER")
                             {
-                                Consume(KeyWord.INTEGER);
-                                parameters.Add(argname, VarType.INTEGERARRAY);
+                                Consume(KeyWord.Integer);
+                                parameters.Add(argname, VarType.Integerarray);
                             }
-                            else if (current.data == "REAL")
+                            else if (_current.Data == "REAL")
                             {
-                                Consume(KeyWord.REAL);
-                                parameters.Add(argname, VarType.REALARRAY);
+                                Consume(KeyWord.Real);
+                                parameters.Add(argname, VarType.Realarray);
                             }
                             break;
                     }
-                } while (current.data != ")");
-                Consume(TokenType.STOP);
+                } while (_current.Data != ")");
+                Consume(TokenType.Stop);
             }
 
             if (func)
             {
-                Consume(TokenType.STOP);
-                switch (current.data)
+                Consume(TokenType.Stop);
+                switch (_current.Data)
                 {
                     case "INTEGER":
-                        Consume(KeyWord.INTEGER);
-                        Consume(TokenType.STOP);
-                        return new Subroutine(funcname, parameters, VarType.INTEGER);
+                        Consume(KeyWord.Integer);
+                        Consume(TokenType.Stop);
+                        return new Subroutine(funcname, parameters, VarType.Integer);
                     case "REAL":
-                        Consume(KeyWord.REAL);
-                        Consume(TokenType.STOP);
-                        return new Subroutine(funcname, parameters, VarType.INTEGER);
+                        Consume(KeyWord.Real);
+                        Consume(TokenType.Stop);
+                        return new Subroutine(funcname, parameters, VarType.Integer);
                     case "ARRAY":
-                        Consume(KeyWord.ARRAY);
+                        Consume(KeyWord.Array);
                         Consume();
-                        Number begindex = new Number(current.data);
-                        Consume(TokenType.NUM);
+                        var begindex = new Number(_current.Data);
+                        Consume(TokenType.Num);
                         Consume();
-                        Number endex = new Number(current.data);
-                        Consume(TokenType.NUM);//should probably do something with these at some point
+                        var endex = new Number(_current.Data);
+                        Consume(TokenType.Num); //should probably do something with these at some point
                         Consume();
-                        Consume(KeyWord.OF);
-                        if (current.data == "INTEGER")
+                        Consume(KeyWord.Of);
+                        if (_current.Data == "INTEGER")
                         {
-                            Consume(KeyWord.INTEGER);
-                            return new Subroutine(funcname, parameters, VarType.INTEGERARRAY);
+                            Consume(KeyWord.Integer);
+                            return new Subroutine(funcname, parameters, VarType.Integerarray);
                         }
-                        else if (current.data == "REAL")
+                        if (_current.Data == "REAL")
                         {
-                            Consume(KeyWord.REAL);
-                            return new Subroutine(funcname, parameters, VarType.REALARRAY);
+                            Consume(KeyWord.Real);
+                            return new Subroutine(funcname, parameters, VarType.Realarray);
                         }
                         break;
                 }
             }
             else
             {
-                return new Subroutine(funcname, parameters, VarType.VOID);
+                return new Subroutine(funcname, parameters, VarType.Void);
             }
-            if (current.Match(TokenType.STOP)) Consume();
+            if (_current.Match(TokenType.Stop)) Consume();
             return null;
         }
+
         private Dictionary<string, VarType> Declarations()
         {
-            Dictionary<string, VarType> vartypes = new Dictionary<string, VarType>();
-            if (current.Match(KeyWord.VAR))
+            var vartypes = new Dictionary<string, VarType>();
+            if (_current.Match(KeyWord.Var))
             {
-                Consume(KeyWord.VAR);
+                Consume(KeyWord.Var);
                 do
                 {
-                    List<string> varnames = new List<string>();
+                    var varnames = new List<string>();
                     do
                     {
-                        if (current.data == ",") Consume();
-                        varnames.Add(current.data);
-                        Consume(TokenType.ID);
-                    } while (current.data == ",");
-                    Consume(TokenType.STOP);
-                    if (current.Match(KeyWord.INTEGER))
+                        if (_current.Data == ",") Consume();
+                        varnames.Add(_current.Data);
+                        Consume(TokenType.Id);
+                    } while (_current.Data == ",");
+                    Consume(TokenType.Stop);
+                    if (_current.Match(KeyWord.Integer))
                     {
-                        VarType vartype = VarType.INTEGER;
-                        Consume(KeyWord.INTEGER);
-                        if (vartypes.ContainsKey(varnames.Last())) throw new ParseFailedException("Variable already defined");
+                        var vartype = VarType.Integer;
+                        Consume(KeyWord.Integer);
+                        if (vartypes.ContainsKey(varnames.Last()))
+                            throw new ParseFailedException("Variable already defined");
                         foreach (var v in varnames) vartypes.Add(v, vartype);
                         varnames.Clear();
                     }
-                    else if (current.Match(KeyWord.REAL))
+                    else if (_current.Match(KeyWord.Real))
                     {
-                        VarType vartype = VarType.REAL;
-                        Consume(KeyWord.REAL);
-                        if (vartypes.ContainsKey(varnames.Last())) throw new ParseFailedException("Variable already defined");
+                        var vartype = VarType.Real;
+                        Consume(KeyWord.Real);
+                        if (vartypes.ContainsKey(varnames.Last()))
+                            throw new ParseFailedException("Variable already defined");
                         foreach (var v in varnames) vartypes.Add(v, vartype);
                         varnames.Clear();
                     }
-                    else if (current.Match(KeyWord.ARRAY)) //deal with this later
+                    else if (_current.Match(KeyWord.Array)) //deal with this later
                     {
-                        Consume(KeyWord.ARRAY);
+                        Consume(KeyWord.Array);
                         Consume();
-                        Number begindex = new Number(current.data);
-                        Consume(TokenType.NUM);
-                        Consume(TokenType.STOP);
-                        Number endex = new Number(current.data);
-                        Consume(TokenType.NUM);
-                        Consume(TokenType.STOP);
-                        Consume(KeyWord.OF);
-                        if (current.data == "INTEGER")
+                        var begindex = new Number(_current.Data);
+                        Consume(TokenType.Num);
+                        Consume(TokenType.Stop);
+                        var endex = new Number(_current.Data);
+                        Consume(TokenType.Num);
+                        Consume(TokenType.Stop);
+                        Consume(KeyWord.Of);
+                        if (_current.Data == "INTEGER")
                         {
-                            vartypes.Add(varnames.Last(), VarType.INTEGERARRAY);
-                            Consume(KeyWord.INTEGER);
+                            vartypes.Add(varnames.Last(), VarType.Integerarray);
+                            Consume(KeyWord.Integer);
                         }
-                        if (current.data == "REAL")
+                        if (_current.Data == "REAL")
                         {
-                            vartypes.Add(varnames.Last(), VarType.REALARRAY);
-                            Consume(KeyWord.REAL);
+                            vartypes.Add(varnames.Last(), VarType.Realarray);
+                            Consume(KeyWord.Real);
                         }
                     }
-                    if (current.TYPE == TokenType.STOP) Consume();
-                } while (current.data != "BEGIN" && current.data != "FUNCTION" && current.data != "PROCEDURE");
+                    if (_current.Type == TokenType.Stop) Consume();
+                } while (_current.Data != "BEGIN" && _current.Data != "FUNCTION" && _current.Data != "PROCEDURE");
             }
             return vartypes;
         }
 
         private List<Statement> Compound_Statement()
         {
-            Consume(KeyWord.BEGIN);
-            var statements =  Optional_Statements();
-            Consume(KeyWord.END);
+            Consume(KeyWord.Begin);
+            var statements = Optional_Statements();
+            Consume(KeyWord.End);
             return statements;
         }
 
         private List<Statement> Optional_Statements()
         {
-            if (!current.Match(KeyWord.END))
+            if (!_current.Match(KeyWord.End))
             {
                 return Statement_List();
             }
@@ -235,13 +235,12 @@ namespace Fitzpiler
 
         private List<Statement> Statement_List()
         {
-            List<Statement> statements = new List<Statement>();
-            statements.Add(Statement());
-            while ((current.data == ";"))
+            var statements = new List<Statement> {Statement()};
+            while (_current.Data == ";")
             {
-                Consume(TokenType.STOP);
+                Consume(TokenType.Stop);
                 var temp = Statement();
-                if(temp != null) statements.Add(temp);
+                if (temp != null) statements.Add(temp);
             }
             return statements;
         }
@@ -249,102 +248,101 @@ namespace Fitzpiler
         private Statement Statement()
         {
             Statement statement = null;
-            if (scanner.Peek().TYPE == TokenType.ASSIGNOP)
+            if (_scanner.Peek().Type == TokenType.Assignop)
             {
-                Variable variable = new Variable(current.data);
-                Consume(TokenType.ID);
-                Consume(TokenType.ASSIGNOP);
-                Expression expression = Expression();
-                Assignment assignment = new Assignment(variable, expression);
+                var variable = new Variable(_current.Data, Program.Vartypes[_current.Data]);
+                Consume(TokenType.Id);
+                Consume(TokenType.Assignop);
+                var expression = Expression();
+                var assignment = new Assignment(variable, expression);
                 statement = assignment;
             }
-            else if(scanner.Peek().data == "[")
+            else if (_scanner.Peek().Data == "[")
             {
-                string varname = current.data;
-                Consume(TokenType.ID);
+                var varname = _current.Data;
+                Consume(TokenType.Id);
                 Consume();
-                Expression expression = Expression();
-                Variable array = new Variable(varname, expression);
+                var expression = Expression();
+                var array = new Variable(varname, VarType.Integer, expression); //fix this
                 Consume();
-                Consume(TokenType.ASSIGNOP);
+                Consume(TokenType.Assignop);
                 expression = Expression();
-                Assignment assignment = new Assignment(array, expression);
+                var assignment = new Assignment(array, expression);
                 statement = assignment;
             }
 
-            else if (current.Match(KeyWord.IF))
+            else if (_current.Match(KeyWord.If))
             {
-                Consume(KeyWord.IF);
-                Expression expression = Expression();
-                Consume(KeyWord.THEN);
-                Statement statement1 = Statement();
-                Consume(KeyWord.ELSE);
-                Statement statement2 = Statement();
-                IfStatement ifstatement = new IfStatement(expression, statement1, statement2);
+                Consume(KeyWord.If);
+                var expression = Expression();
+                Consume(KeyWord.Then);
+                var statement1 = Statement();
+                Consume(KeyWord.Else);
+                var statement2 = Statement();
+                var ifstatement = new IfStatement(expression, statement1, statement2);
                 statement = ifstatement;
             }
-            else if (current.Match(KeyWord.WHILE))
+            else if (_current.Match(KeyWord.While))
             {
-                Consume(KeyWord.WHILE);
-                Expression expression = Expression();
-                Consume(KeyWord.DO);
-                Statement statement1 = Statement();
+                Consume(KeyWord.While);
+                var expression = Expression();
+                Consume(KeyWord.Do);
+                var statement1 = Statement();
                 statement = new WhileStatement(expression, statement1);
             }
-            else if (current.Match(KeyWord.READ))
+            else if (_current.Match(KeyWord.Read))
             {
-                Consume(KeyWord.READ);
-                Consume(TokenType.STOP);
-                Variable variable = new Variable(current.data);
-                Consume(TokenType.ID);
-                Consume(TokenType.STOP);
+                Consume(KeyWord.Read);
+                Consume(TokenType.Stop);
+                var variable = new Variable(_current.Data, VarType.Integer);
+                Consume(TokenType.Id);
+                Consume(TokenType.Stop);
                 statement = new ReadStatement(variable);
             }
-            else if (current.Match(KeyWord.WRITE))
+            else if (_current.Match(KeyWord.Write))
             {
-                Consume(KeyWord.WRITE);
-                Consume(TokenType.STOP);
-                Expression expression = Expression();
-                Consume(TokenType.STOP);
+                Consume(KeyWord.Write);
+                Consume(TokenType.Stop);
+                var expression = Expression();
+                Consume(TokenType.Stop);
                 statement = new WriteStatement(expression);
             }
-            else if (this.program.subprograms.ContainsKey(current.data))
+            else if (Program.Subprograms.ContainsKey(_current.Data))
             {
-                string funcname = current.data;
-                Consume(TokenType.ID);
-                Consume(TokenType.STOP);
-                List<Expression> arguments = ExpressionList();
-                Consume(TokenType.STOP);
+                var funcname = _current.Data;
+                Consume(TokenType.Id);
+                Consume(TokenType.Stop);
+                var arguments = ExpressionList();
+                Consume(TokenType.Stop);
                 statement = new Procedure(funcname, arguments);
             }
             return statement;
-
         }
 
         private Expression Expression()
         {
-            Expression expression = Term();
-            while (current.TYPE == TokenType.ADDOP)
+            var expression = Term();
+            while (_current.Type == TokenType.Addop)
             {
-                Op operation = Op.ADD;
-                if (current.data == "+") operation = Op.ADD;
-                else if (current.data == "-") operation = Op.SUB;
-                else if (current.data == "&") operation = Op.AND;
+                var operation = Op.Add;
+                if (_current.Data == "+") operation = Op.Add;
+                else if (_current.Data == "-") operation = Op.Sub;
+                else if (_current.Data == "&") operation = Op.And;
                 Consume();
-                Expression expression2 = Term();
+                var expression2 = Term();
                 Expression newexpression = new Operation(expression, operation, expression2);
                 expression = newexpression;
             }
-            if (current.TYPE == TokenType.RELOP)
+            if (_current.Type == TokenType.Relop)
             {
-                Op operation = Op.ADD;
-                if (current.data == "=") operation = Op.EQ;
-                else if (current.data == "<=") operation = Op.LEQ;
-                else if (current.data == ">=") operation = Op.GEQ;
-                else if (current.data == ">") operation = Op.GRT;
-                else if (current.data == "<") operation = Op.LST;
+                var operation = Op.Add;
+                if (_current.Data == "=") operation = Op.Eq;
+                else if (_current.Data == "<=") operation = Op.Leq;
+                else if (_current.Data == ">=") operation = Op.Geq;
+                else if (_current.Data == ">") operation = Op.Grt;
+                else if (_current.Data == "<") operation = Op.Lst;
                 Consume();
-                Expression expression2 = Expression();
+                var expression2 = Expression();
                 Expression newExpression = new Operation(expression, operation, expression2);
                 expression = newExpression;
             }
@@ -353,64 +351,76 @@ namespace Fitzpiler
 
         private List<Expression> ExpressionList()
         {
-            List<Expression> expressionList = new List<Expression>();
-            expressionList.Add(Expression());
-            if(current.data == ",")
+            var expressionList = new List<Expression> {Expression()};
+            if (_current.Data == ",")
             {
                 expressionList.Add(Expression());
             }
             return expressionList;
         }
+
         private Expression Term()
         {
             Expression expression = null;
             do
             {
-                if (current.Match(TokenType.NUM))
+                if (_current.Match(TokenType.Num))
                 {
-                    expression = new Number(current.data);
-                    Consume(TokenType.NUM);
+                    var number = _current.Data;
+                    Consume(TokenType.Num);
+                    if (_current.Data == ".")
+                    {
+                        Consume();
+                        number += "." + _current.Data;
+                        Consume(TokenType.Num);
+                    }
+                    if (_current.Data == "E")
+                    {
+                    }
+                    expression = new Number(number);
                 }
-                else if (current.data == "-")
+                else if (_current.Data == "-")
                 {
-                    Consume(TokenType.ADDOP);
+                    Consume(TokenType.Addop);
                     Expression expression1 = new Number("0");
-                    Expression expression2 = Expression();
-                    expression = new Operation(expression1, Op.SUB, expression2);
+                    var expression2 = Expression();
+                    expression = new Operation(expression1, Op.Sub, expression2);
                 }
-                else if (current.data == "+")
+                else if (_current.Data == "+")
                 {
-                    Consume(TokenType.ADDOP);
+                    Consume(TokenType.Addop);
                     expression = Term();
                 }
-                else if (current.data == "(")
+                else if (_current.Data == "(")
                 {
-                    Consume(TokenType.STOP);
+                    Consume(TokenType.Stop);
                     expression = Expression();
-                    Consume(TokenType.STOP);
+                    Consume(TokenType.Stop);
                 }
-                else if (current.data == "NOT")
+                else if (_current.Data == "NOT")
                 {
-
                 }
-                else if (current.Match(TokenType.ID))
+                else if (_current.Match(TokenType.Id))
                 {
-                    Variable variable = new Variable(current.data);
-                    Consume(TokenType.ID);
-                    if (current.data == "[")
+                    var variable = new Variable(_current.Data, Program.Vartypes[_current.Data]);
+                    Consume(TokenType.Id);
+                    if (_current.Data == "[")
                     {
                         Consume();
-                        Expression localexpression = Expression();
-                        Variable vararray = new Variable(variable.varname, localexpression);
+                        var localexpression = Expression();
+                        var vararray = Program.Vartypes[variable.Varname] == VarType.Integer
+                            ? new Variable(variable.Varname, VarType.Integerarray, localexpression)
+                            : new Variable(variable.Varname, VarType.Realarray, localexpression);
                         expression = vararray;
                     }
-                    else if (current.data == "(")
+                    else if (_current.Data == "(")
                     {
                         Consume();
-                        List<Expression> expressionList = ExpressionList();
+                        var expressionList = ExpressionList();
                         // move this validation to the verifier
-                        if (!this.program.subprograms.ContainsKey(variable.varname)) throw new ParseFailedException("Use of unregistered subroutine:  " + variable.varname);
-                        expression = new Function(variable.varname, expressionList);
+                        if (!Program.Subprograms.ContainsKey(variable.Varname))
+                            throw new ParseFailedException("Use of unregistered subroutine:  " + variable.Varname);
+                        expression = new Function(variable.Varname, expressionList);
                         Consume();
                     }
                     else
@@ -419,46 +429,48 @@ namespace Fitzpiler
                     }
                 }
 
-                if (current.Match(TokenType.MULOP))
+                if (_current.Match(TokenType.Mulop))
                 {
-                    Token token = current;
+                    var token = _current;
                     Consume();
-                    Expression expression2 = Term();
-                    Op operation = token.data == "*" ? Op.MULT : token.data == "/" ? Op.DIVIDE : token.data == "%" ? Op.MOD : Op.AND;
+                    var expression2 = Term();
+                    var operation = token.Data == "*"
+                        ? Op.Mult
+                        : token.Data == "/" ? Op.Divide : token.Data == "%" ? Op.Mod : Op.And;
                     expression = new Operation(expression, operation, expression2);
                 }
-            }
-            while (current.Match(TokenType.MULOP));
+            } while (_current.Match(TokenType.Mulop));
 
             return expression;
         }
 
         public void Consume(KeyWord key)
         {
-            if (current.Match(key))
+            if (_current.Match(key))
             {
-                current = scanner.Pop();
+                _current = _scanner.Pop();
             }
             else
             {
-                throw new ParseFailedException("Incorrect Keyword: " + current.data);
+                throw new ParseFailedException("Incorrect Keyword: " + _current.Data);
             }
-        }
-        public void Consume(TokenType token)
-        {
-            if (current.Match(token))
-            {
-                current = scanner.Pop();
-            }
-            else
-            {
-                throw new ParseFailedException("Incorrect syntax: " + current.data);
-            }
-        }
-        public void Consume()
-        {
-            current = scanner.Pop();
         }
 
-    }    
+        public void Consume(TokenType token)
+        {
+            if (_current.Match(token))
+            {
+                _current = _scanner.Pop();
+            }
+            else
+            {
+                throw new ParseFailedException("Incorrect syntax: " + _current.Data);
+            }
+        }
+
+        public void Consume()
+        {
+            _current = _scanner.Pop();
+        }
+    }
 }

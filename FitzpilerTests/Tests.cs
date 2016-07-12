@@ -12,19 +12,19 @@ namespace Fitzpiler.Tests
     [TestClass()]
     public class Tests
     {
-        Tokenizer t;
+        Tokenizer _t;
         [TestInitialize()]
         public void TestInitialize()
         {
             string[] program = File.ReadAllLines(@"testfile1.txt");
-            t = new Tokenizer(program);
+            _t = new Tokenizer(program);
         }
         [TestMethod()]
         public void TokenizerTest()
         {
             Token token;
             Queue<Token> queue = new Queue<Token>();
-            while ((token = t.Next()) != null)
+            while ((token = _t.Next()) != null)
             {
                 queue.Enqueue(token);
             }
@@ -35,8 +35,8 @@ namespace Fitzpiler.Tests
         public void ParserTest()
         {
             Parser parser = new Parser(new Scanner(File.ReadAllLines(@"testfile1.txt")));
-            Assert.IsNotNull(parser.program);
-            Assert.IsTrue(parser.program.Verify());
+            Assert.IsNotNull(parser.Program);
+            Assert.IsTrue(parser.Program.Verify());
         }
     }
 }

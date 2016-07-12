@@ -1,41 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Fitzpiler
+﻿namespace Fitzpiler
 {
     public enum TokenType
     {
-        NUM,
-        ID,
-        RELOP,
-        ADDOP,
-        MULOP,
-        ASSIGNOP,
-        STOP
+        Num,
+        Id,
+        Relop,
+        Addop,
+        Mulop,
+        Assignop,
+        Stop
     }
+
     public enum KeyWord
     {
-        PROGRAM,
-        VAR,
-        ARRAY,
-        INTEGER,
-        REAL,
-        FUNCTION,
-        PROCEDURE,
-        BEGIN,
-        END,
-        IF,
-        WHILE,
-        READ,
-        WRITE,
-        NOT,
-        THEN,
-        ELSE,
-        DO,
-        OF
+        Program,
+        Var,
+        Array,
+        Integer,
+        Real,
+        Function,
+        Procedure,
+        Begin,
+        End,
+        If,
+        While,
+        Read,
+        Write,
+        Not,
+        Then,
+        Else,
+        Do,
+        Of
     }
-    
 }

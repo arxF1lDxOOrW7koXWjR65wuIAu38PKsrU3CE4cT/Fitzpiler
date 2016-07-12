@@ -1,126 +1,167 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
-    class Generator
+    internal class Generator
     {
-        private Program program;
-        private StringBuilder sb = new StringBuilder();
-        private Dictionary<string, int> vars = new Dictionary<string, int>();
-        private int maxstack = 0;
+/*
+        private int _labels = 0;
+        private int _maxstack = 0;
+*/
+        private readonly Program _program;
+        private readonly StringBuilder _sb = new StringBuilder();
+        private readonly Dictionary<string, int> _vars = new Dictionary<string, int>();
 
         public Generator(Program program)
         {
-            this.program = program;
+            this._program = program;
             Header();
             Locals();
-            sb.Append("\n");
-            Statements(this.program.statements);
-            sb.Append("ret\n}\n");
+            _sb.Append("\n");
+            Statements(_program.Statements);
+            _sb.Append("ret\n}\n");
         }
 
         public new string ToString()
         {
-            return sb.ToString();
+            return _sb.ToString();
         }
 
         public void Header()
         {
-            sb.Append(".assembly extern mscorlib {} \n");
-            sb.Append(".assembly " + this.program.id + "{}\n\n");
-            sb.Append(".method static public void main() il managed\n{\n\n");
-            sb.Append(".entrypoint\n.maxstack 8\n");
+            _sb.Append(".assembly extern mscorlib {} \n");
+            _sb.Append(".assembly " + _program.Id + "{}\n\n");
+            _sb.Append(".method static public void main() il managed\n{\n\n");
+            _sb.Append(".entrypoint\n.maxstack 8\n");
         }
 
         public void Locals(Subroutine s)
         {
-
         }
 
         public void Locals()
         {
-            sb.Append(".locals init (\n");
-            int count = 0;
-            foreach(string varname in this.program.vartypes.Keys)
+            _sb.Append(".locals init (\n");
+            var count = 0;
+            foreach (var varname in _program.Vartypes.Keys)
             {
-                if (this.program.vartypes[varname] == VarType.INTEGER) sb.Append("[" + count + "] int32 " + varname + ",\n");
-                if (this.program.vartypes[varname] == VarType.REAL) sb.Append("[" + count + "] float32 " + varname + ",\n");
-                vars.Add(varname, count++);
+                if (_program.Vartypes[varname] == VarType.Integer) _sb.Append("[" + count + "] int32 " + varname + ",\n");
+                if (_program.Vartypes[varname] == VarType.Real) _sb.Append("[" + count + "] float32 " + varname + ",\n");
+                _vars.Add(varname, count++);
             }
-            sb.Append(")\n");
-            sb.Remove(sb.Length - 4, 2);
+            _sb.Append(")\n");
+            _sb.Remove(_sb.Length - 4, 2);
         }
 
-        public void Statements(List<Statement> statements)
+        public string Statements(List<Statement> statements)
         {
-            foreach (Statement s in statements)
+            var sb = new StringBuilder();
+            foreach (var s in statements)
             {
                 if (s is Assignment)
                 {
-                    Assignment assignment = s as Assignment;
-                    Expression(assignment.expression);
-                    sb.Append("stloc." + vars[assignment.variable.varname] + "\n");
+                    var assignment = s as Assignment;
+                    sb.Append(Expression(assignment.Expression));
+                    sb.Append("stloc." + _vars[assignment.Variable.Varname] + "\n");
                 }
-                if (s is ReadStatement)
+                else if (s is ReadStatement)
                 {
-                    ReadStatement readstatement = s as ReadStatement;
+                    var readstatement = s as ReadStatement;
                 }
-                if (s is WriteStatement)
+                else if (s is WriteStatement)
                 {
-                    WriteStatement writestatement = s as WriteStatement;
-                    Expression(writestatement.expression);
-                    sb.Append("box [mscorlib]System.Int32\n");
-                    sb.Append("call  void[mscorlib] System.Console::WriteLine(object)\n");
+                    var writestatement = s as WriteStatement;
+                    //   VarType expressiontype = Expression(writestatement.expression);
+                    //   if (expressiontype == VarType.INTEGER)
+                    //   {
+                    //sb.Append("box [mscorlib]System.Int32\n");
+                    sb.Append("call  void[mscorlib] System.Console::WriteLine(int32)\n");
+                    //  }
+                    // else if(expressiontype == VarType.REAL)
+                    // {
+                    //    sb.Append("call  void[mscorlib] System.Console::WriteLine(float32)\n");
+                    // }
+
+                    // sb.Append("call  void[mscorlib] System.Console::WriteLine(object)\n");
+                }
+                else if (s is IfStatement)
+                {
+                    //var ifstatement = s as IfStatement;
+                    //  VarType exp1 = Expression(ifstatement.expression);
+
+                    //var ifop = (ifstatement.Expression as Operation).operation;
+                    //switch (ifop)
+                    //{
+                    //    // case Op.EQ:
+                    //}
                 }
             }
+            return sb.ToString();
         }
-        public void Expression(Expression expression)
+
+        public string Expression(Expression expression)
         {
-            if(expression is Operation)
+            var sb = new StringBuilder();
+            var operation1 = expression as Operation;
+            if (operation1 != null)
             {
-                Operation operation = expression as Operation;
-                Expression(operation.expression1);
-                Expression(operation.expression2);
+                var operation = operation1;
+                sb.Append(Expression(operation.Expression1));
+                sb.Append(Expression(operation.Expression2));
                 switch (operation.operation)
                 {
-                    case Op.ADD:
+                    case Op.Add:
                         sb.Append("add\n");
                         break;
-                    case Op.SUB:
+                    case Op.Sub:
                         sb.Append("sub\n");
                         break;
-                    case Op.MULT:
+                    case Op.Mult:
                         sb.Append("mul\n");
                         break;
-                    case Op.DIVIDE:
+                    case Op.Divide:
                         sb.Append("div\n");
                         break;
-                    case Op.MOD:
+                    case Op.Mod:
                         sb.Append("rem\n");
                         break;
-                    case Op.OR:
+                    case Op.Or:
                         sb.Append("or\n");
                         break;
-                    case Op.AND:
+                    case Op.And:
                         sb.Append("or\n");
                         break;
                     //needs XOR
                 }
+                //if (exp1 == VarType.INTEGER && exp2 == VarType.INTEGER)
+                //{
+                //    return VarType.INTEGER;
+                //}
+                //else
+                //{
+                //    return VarType.REAL;
+                //}
             }
-            if(expression is Variable)
+            var variable1 = expression as Variable;
+            if (variable1 != null)
             {
-                Variable variable = expression as Variable;
-                sb.Append("ldloc " + vars[variable.varname] + "\n");
+                var variable = variable1;
+                sb.Append("ldloc " + _vars[variable.Varname] + "\n");
+                // return this.program.vartypes[variable.varname];
             }
-            if(expression is Number)
+            if (!(expression is Number)) return sb.ToString();
+            var number = (Number) expression;
+            if (number.number.Contains("."))
             {
-                Number number = expression as Number;
+                sb.Append("ldc.r4 " + number.number + "\n");
+            }
+            else
+            {
                 sb.Append("ldc.i4 " + number.number + "\n");
             }
+            //  return VarType.VOID;
+            return sb.ToString();
         }
     }
 }

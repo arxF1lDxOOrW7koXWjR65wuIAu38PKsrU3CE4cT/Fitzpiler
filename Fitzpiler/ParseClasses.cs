@@ -2,18 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
     public enum VarType
     {
-        INTEGER,
-        REAL,
-        FUNCTION,
-        REALARRAY,
-        INTEGERARRAY,
-        VOID
+        Integer,
+        Real,
+        Function,
+        Realarray,
+        Integerarray,
+        Void
     }
 
     public abstract class Statement
@@ -23,303 +22,334 @@ namespace Fitzpiler
             return "\n";
         }
 
-        public virtual IEnumerable<string> GetVars()
+        public virtual IEnumerable<Tuple<string, VarType>> GetVars()
         {
             yield return null;
         }
     }
 
-    class Assignment : Statement
+    internal class Assignment : Statement
     {
-        public Variable variable { get; }
-        public Expression expression { get; }
         public Assignment(Variable variable, Expression expression)
         {
-            this.variable = variable;
-            this.expression = expression;
+            this.Variable = variable;
+            this.Expression = expression;
         }
+
+        public Variable Variable { get; }
+        public Expression Expression { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "ASSIGNOP\n";
-            outstr += variable.ToString(level + 1) + "\n";
-            outstr += expression.ToString(level + 1);
+            outstr += Variable.ToString(level + 1) + "\n";
+            outstr += Expression.ToString(level + 1);
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            yield return this.variable.varname;
-            if (this.variable.accessor != null) foreach (string s in this.variable.accessor.GetVars()) yield return s;
-            foreach (string s in this.expression.GetVars()) yield return s;
+            yield return new Tuple<string, VarType>(Variable.Varname, Variable.Vartype);
+            if (Variable.Accessor != null) foreach (var s in Variable.Accessor.GetVars()) yield return s;
+            foreach (var s in Expression.GetVars()) yield return s;
         }
     }
 
-    class Procedure : Statement
+    internal class Procedure : Statement
     {
-        public string funcname { get; }
-        public List<Expression> arguments { get; }
         public Procedure(string funcname, List<Expression> args)
         {
-            this.funcname = funcname;
-            this.arguments = args;
+            this.Funcname = funcname;
+            Arguments = args;
         }
+
+        public string Funcname { get; }
+        public List<Expression> Arguments { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += "PROC." + this.funcname + "\n";
-            foreach (Expression arg in arguments) outstr += "|" + arg.ToString(level);
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += "PROC." + Funcname + "\n";
+            foreach (var arg in Arguments) outstr += "|" + arg.ToString(level);
             return outstr;
         }
     }
 
-    class IfStatement : Statement
+    internal class IfStatement : Statement
     {
         public IfStatement(Expression expression1, Statement statement1, Statement statement2)
         {
-            this.expression = expression1;
-            this.statement1 = statement1;
-            this.statement2 = statement2;
+            Expression = expression1;
+            this.Statement1 = statement1;
+            this.Statement2 = statement2;
         }
 
-        public Expression expression { get; }
-        public Statement statement1 { get; }
-        public Statement statement2 { get; }
+        public Expression Expression { get; }
+        public Statement Statement1 { get; }
+        public Statement Statement2 { get; }
 
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += "IF: \n" + expression.ToString(level + 1) + "\n";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += "IF: \n" + Expression.ToString(level + 1) + "\n";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "THEN: \n";
-            outstr += statement1.ToString(level + 1) + "\n";
-            for (int i = 0; i < level; i++) outstr += "-";
+            outstr += Statement1.ToString(level + 1) + "\n";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "ELSE: \n";
-            outstr += statement2.ToString(level + 1) + "\n";
+            outstr += Statement2.ToString(level + 1) + "\n";
             return outstr;
         }
 
-        public override IEnumerable<string> GetVars()
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            foreach (string s in this.expression.GetVars()) yield return s;
-            foreach (string s in this.statement1.GetVars()) yield return s;
-            foreach (string s in this.statement2.GetVars()) yield return s;
+            foreach (var s in Expression.GetVars()) yield return s;
+            foreach (var s in Statement1.GetVars()) yield return s;
+            foreach (var s in Statement2.GetVars()) yield return s;
         }
     }
 
-    class WhileStatement : Statement
+    internal class WhileStatement : Statement
     {
-        public Expression expression { get; }
-        public Statement statement { get; }
-
         public WhileStatement(Expression expression, Statement statement)
         {
-            this.expression = expression;
-            this.statement = statement;
+            this.Expression = expression;
+            this.Statement = statement;
         }
+
+        public Expression Expression { get; }
+        public Statement Statement { get; }
 
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "WHILE:\n";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += expression.ToString(level + 1) + "\n";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += Expression.ToString(level + 1) + "\n";
             outstr += "DO:\n";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += statement.ToString(level + 1) + "\n";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += Statement.ToString(level + 1) + "\n";
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            foreach (string s in this.expression.GetVars()) yield return s;
-            foreach (string s in this.statement.GetVars()) yield return s;
+            foreach (var s in Expression.GetVars()) yield return s;
+            foreach (var s in Statement.GetVars()) yield return s;
         }
     }
 
-    class ReadStatement : Statement
+    internal class ReadStatement : Statement
     {
-        public Variable variable { get; }
         public ReadStatement(Variable variable)
         {
-            this.variable = variable;
+            this.Variable = variable;
         }
+
+        public Variable Variable { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "SYS.READ\n";
-            outstr += variable.ToString(level + 1);
+            outstr += Variable.ToString(level + 1);
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            yield return variable.varname;
+            yield return Variable.GetVars().First();
         }
     }
 
-    class WriteStatement : Statement
+    internal class WriteStatement : Statement
     {
-        public Expression expression { get; }
         public WriteStatement(Expression expression)
         {
-            this.expression = expression;
+            this.Expression = expression;
         }
+
+        public Expression Expression { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += "SYS.WRITE\n";
-            outstr += expression.ToString(level + 1);
+            outstr += Expression.ToString(level + 1);
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            foreach (string s in expression.GetVars()) yield return s;
+            foreach (var s in Expression.GetVars()) yield return s;
         }
     }
 
     public abstract class Expression
     {
-        public virtual string ToString(int level) { return "\n"; }
-        public virtual IEnumerable<string> GetVars()
+        public virtual string ToString(int level)
+        {
+            return "\n";
+        }
+
+        public virtual IEnumerable<Tuple<string, VarType>> GetVars()
         {
             yield return null;
         }
     }
 
-    class Operation : Expression
+    internal class Operation : Expression
     {
-        public Expression expression1 { get; }
-        public Op operation { get; }
-        public Expression expression2 { get; }
-
         public Operation(Expression expression1, Op operation, Expression expression2)
         {
-            this.expression1 = expression1;
+            Expression1 = expression1;
             this.operation = operation;
-            this.expression2 = expression2;
+            Expression2 = expression2;
         }
+
+        public Expression Expression1 { get; }
+
+        public Op operation { get; }
+
+        public Expression Expression2 { get; }
 
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             switch (operation)
             {
-                case Op.ADD:
+                case Op.Add:
                     outstr += "OP.ADD\n";
                     break;
-                case Op.SUB:
+                case Op.Sub:
                     outstr += "OP.SUB\n";
                     break;
-                case Op.MULT:
+                case Op.Mult:
                     outstr += "OP.MULT\n";
                     break;
-                case Op.DIVIDE:
+                case Op.Divide:
                     outstr += "OP.DIVIDE\n";
                     break;
-                case Op.EQ:
+                case Op.Eq:
                     outstr += "RELOP.EQ\n";
                     break;
-                case Op.GRT:
+                case Op.Grt:
                     outstr += "RELOP.GRT\n";
                     break;
-                case Op.LST:
+                case Op.Lst:
                     outstr += "RELOP.LST\n";
                     break;
-                case Op.GEQ:
+                case Op.Geq:
                     outstr += "RELOP.GEQ\n";
                     break;
-                case Op.LEQ:
+                case Op.Leq:
                     outstr += "RELOP.LEQ\n";
                     break;
             }
-            outstr += expression1.ToString(level + 1) + "\n";
-            outstr += expression2.ToString(level + 1);
+            outstr += Expression1.ToString(level + 1) + "\n";
+            outstr += Expression2.ToString(level + 1);
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            foreach (string s in this.expression1.GetVars()) yield return s;
-            foreach (string s in this.expression2.GetVars()) yield return s;
+            foreach (var s in Expression1.GetVars()) yield return s;
+            foreach (var s in Expression2.GetVars()) yield return s;
         }
     }
 
-    enum Op
+    internal enum Op
     {
-        ADD,
-        SUB,
-        MULT,
-        DIVIDE,
-        MOD,
-        AND,
-        OR,
-        EQ,
-        LEQ,
-        GEQ,
-        LST,
-        GRT
+        Add,
+        Sub,
+        Mult,
+        Divide,
+        Mod,
+        And,
+        Or,
+        Eq,
+        Leq,
+        Geq,
+        Lst,
+        Grt
     }
 
-    class Variable : Expression
+    internal class Variable : Expression
     {
-        public string varname { get; }
-        public Expression accessor { get; }
-        public Variable(string varname, Expression accessor)
+        public Variable(string varname, VarType vartype, Expression accessor)
         {
-            this.varname = varname;
-            this.accessor = accessor;
+            this.Varname = varname;
+            this.Vartype = vartype;
+            this.Accessor = accessor;
         }
-        public Variable(string varname)
+
+        public Variable(string varname, VarType vartype)
         {
-            this.varname = varname;
+            this.Varname = varname;
+            this.Vartype = vartype;
         }
+
+        public string Varname { get; }
+        public VarType Vartype { get; }
+        public Expression Accessor { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += varname;
-            if (this.accessor != null) outstr += "\n-ARRAY.ACCESS\n" + this.accessor.ToString(level + 1);
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += Varname;
+            if (Accessor != null) outstr += "\n-ARRAY.ACCESS\n" + Accessor.ToString(level + 1);
             return outstr;
         }
-        public override IEnumerable<string> GetVars()
+
+        public override IEnumerable<Tuple<string, VarType>> GetVars()
         {
-            yield return this.varname;
+            yield return new Tuple<string, VarType>(Varname, Vartype);
         }
     }
 
-    class Function : Expression
+    internal class Function : Expression
     {
-        string funcname { get; }
-        List<Expression> arguments { get; }
-
         public Function(string funcname, List<Expression> args)
         {
-            this.funcname = funcname;
-            this.arguments = args;
+            this.Funcname = funcname;
+            Arguments = args;
         }
+
+        private string Funcname { get; }
+        private List<Expression> Arguments { get; }
+
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += "FUNC." + this.funcname + "\n";
-            foreach (Expression arg in arguments) outstr += "|" + arg.ToString(level);
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += "FUNC." + Funcname + "\n";
+            foreach (var arg in Arguments) outstr += "|" + arg.ToString(level);
             return outstr;
         }
     }
 
-    class Number : Expression
+    internal class Number : Expression
     {
+        public Number(string number)
+        {
+            this.number = number;
+        }
+
         public string number { get; }
-        public Number(string number) { this.number = number; }
 
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
             outstr += number;
             return outstr;
         }
@@ -328,29 +358,32 @@ namespace Fitzpiler
 
     public class Subroutine : Expression
     {
-        public string name { get; }
-        public Dictionary<string, VarType> vartypes { get; set; }
-        public List<Statement> statements { get; set; }
-        public Dictionary<string, VarType> parameters { get; }
-        public VarType returnType { get; }
         public Subroutine(string name, Dictionary<string, VarType> args, VarType returnType)
         {
-            this.name = name;
-            this.parameters = args;
-            this.returnType = returnType;
+            this.Name = name;
+            Parameters = args;
+            this.ReturnType = returnType;
         }
+
+        public string Name { get; }
+        public Dictionary<string, VarType> Vartypes { get; set; }
+        public List<Statement> Statements { get; set; }
+        public Dictionary<string, VarType> Parameters { get; }
+        public VarType ReturnType { get; }
+
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            if (this.returnType == VarType.VOID) sb.Append("\nPROCEDURE:\n\t");
-            else sb.Append("\nFUNCTION:\n\t");
-            sb.Append(this.name + "\n\nReturn Type:\n\t" + this.returnType + "\n\nParameters:");
-            foreach (var parameter in this.parameters.Keys) sb.Append("\n\t" + parameter + ":\t" + this.parameters[parameter] + "\n\nVariables:\n");
-            if (vartypes != null) foreach (var variable in vartypes.Keys) sb.Append("\t" + variable + ":\t" + vartypes[variable] + "\n");
+            var sb = new StringBuilder();
+            sb.Append(ReturnType == VarType.Void ? "\nPROCEDURE:\n\t" : "\nFUNCTION:\n\t");
+            sb.Append(Name + "\n\nReturn Type:\n\t" + ReturnType + "\n\nParameters:");
+            foreach (var parameter in Parameters.Keys)
+                sb.Append("\n\t" + parameter + ":\t" + Parameters[parameter] + "\n\nVariables:\n");
+            if (Vartypes != null)
+                foreach (var variable in Vartypes.Keys) sb.Append("\t" + variable + ":\t" + Vartypes[variable] + "\n");
             sb.Append("\nStatements:\n");
-            if (statements != null)
+            if (Statements != null)
             {
-                foreach (Statement s in statements)
+                foreach (var s in Statements)
                 {
                     sb.Append(s.ToString(0) + "\n\n");
                 }
@@ -360,10 +393,10 @@ namespace Fitzpiler
 
         public override string ToString(int level)
         {
-            string outstr = "";
-            for (int i = 0; i < level; i++) outstr += "-";
-            outstr += "SUBROUTINE_CALL: " + this.name + "\n";
-            for (int i = 0; i < level + 1; i++) outstr += "-";
+            var outstr = "";
+            for (var i = 0; i < level; i++) outstr += "-";
+            outstr += "SUBROUTINE_CALL: " + Name + "\n";
+            for (var i = 0; i < level + 1; i++) outstr += "-";
             outstr += "ARGS: \n";
 
             return outstr;
@@ -372,22 +405,23 @@ namespace Fitzpiler
 
     public class Program
     {
-        public string id;
-        public Dictionary<string, VarType> vartypes = new Dictionary<string, VarType>();
-        public Dictionary<string, Subroutine> subprograms = new Dictionary<string, Subroutine>();
-        public List<Statement> statements = new List<Statement>();
+        public string Id;
+        public List<Statement> Statements = new List<Statement>();
+        public Dictionary<string, Subroutine> Subprograms = new Dictionary<string, Subroutine>();
+        public Dictionary<string, VarType> Vartypes = new Dictionary<string, VarType>();
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append("PROGRAM: " + this.id + "\n---------------------------------------------------\nVariables:\n");
-            if (vartypes != null) foreach (var variable in vartypes.Keys) sb.Append("\t" + variable + ": " + vartypes[variable] + "\n");
+            var sb = new StringBuilder();
+            sb.Append("PROGRAM: " + Id + "\n---------------------------------------------------\nVariables:\n");
+            if (Vartypes != null)
+                foreach (var variable in Vartypes.Keys) sb.Append("\t" + variable + ": " + Vartypes[variable] + "\n");
             sb.Append("---------------------------------------------------\nSubprograms:\n");
-            if (subprograms != null) foreach (Subroutine subroutine in subprograms.Values) sb.Append("\t\n" + subroutine.ToString());
+            if (Subprograms != null) foreach (var subroutine in Subprograms.Values) sb.Append("\t\n" + subroutine);
             sb.Append("---------------------------------------------------\nStatements:\n");
-            if (statements != null)
+            if (Statements != null)
             {
-                foreach (Statement s in statements)
+                foreach (var s in Statements)
                 {
                     sb.Append("\n\n" + s.ToString(0));
                 }
@@ -398,22 +432,22 @@ namespace Fitzpiler
 
         public bool Verify()
         {
-            foreach (Subroutine routine in this.subprograms.Values)
+            foreach (var routine in Subprograms.Values)
             {
-                foreach (Statement state in routine.statements)
+                foreach (var state in routine.Statements)
                 {
-                    foreach(string s in state.GetVars())
+                    foreach (var s in state.GetVars())
                     {
-                        if (s != null && !routine.vartypes.ContainsKey(s)) return false;
+                        if (s != null && !routine.Vartypes.ContainsKey(s.Item1)) return false;
                     }
                 }
             }
 
-            foreach(Statement state in this.statements)
+            foreach (var state in Statements)
             {
-                foreach (string s in state.GetVars())
+                foreach (var s in state.GetVars())
                 {
-                    if (s != null && !this.vartypes.ContainsKey(s)) return false;
+                    if (s != null && !Vartypes.ContainsKey(s.Item1)) return false;
                 }
             }
             return true;

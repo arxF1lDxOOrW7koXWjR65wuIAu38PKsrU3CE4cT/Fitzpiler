@@ -1,28 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fitzpiler
 {
     public class Scanner
     {
         private string[] program;
-        private Queue<Token> queue = new Queue<Token>();
-        private Stack<Token> doubleQueue = new Stack<Token>(); //Second stack may not be necessary
-        private Token current;
-        public Tokenizer tokenizer { get; private set; }
+        private readonly Queue<Token> _queue = new Queue<Token>();
+        private readonly Stack<Token> _doubleQueue = new Stack<Token>(); //Second stack may not be necessary
+        private Token _current;
+        public Tokenizer Tokenizer { get; }
         public Scanner(string [] program)
         {
             this.program = program;
             try
             {
-                tokenizer = new Tokenizer(this.program);
+                Tokenizer = new Tokenizer(this.program);
                 Token t;
-                while ((t = tokenizer.Next()) != null)
+                while ((t = Tokenizer.Next()) != null)
                 {
-                    queue.Enqueue(t);
+                    _queue.Enqueue(t);
                  //   Console.WriteLine(t);
                 }
             }
@@ -33,18 +30,18 @@ namespace Fitzpiler
         }
         public Token Pop()
         {
-            current = queue.Dequeue();
-            doubleQueue.Push(current);
-            return current;
+            _current = _queue.Dequeue();
+            _doubleQueue.Push(_current);
+            return _current;
         }
         public Token Peek()
         {
-            return queue.Peek();
+            return _queue.Peek();
         }
         public void Rewind() //Remove if unused, may not work anyways
         {
-            current = doubleQueue.Pop();
-            queue.Enqueue(current);
+            _current = _doubleQueue.Pop();
+            _queue.Enqueue(_current);
         }
     }
 }
